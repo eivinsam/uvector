@@ -496,3 +496,10 @@ namespace uv
 		return out << ']';
 	}
 }
+
+#undef TEMPLATE_VECTOR_A
+#undef TEMPLATE_VECTORS_AB
+#undef TEMPLATE_VECTOR_A_SCALAR_B
+#undef VECTOR_A
+#undef VECTOR_B
+#undef AS_VECTOR_B
