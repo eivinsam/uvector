@@ -4,13 +4,6 @@
 #include <iterator>
 #include <ostream>
 
-// TODO: make float2, float3, float4 and double2 faster
-extern "C"
-{
-#include <emmintrin.h>
-#include <mmintrin.h>
-}
-
 #include "../base/gsl.h"
 
 #define TEMPLATE_VECTOR_A template <class A, size_t NA, int KA>
@@ -384,73 +377,7 @@ namespace uv
 					a[0] * b[1] - a[1] * b[0]
 				};
 			}
-
 		};
-		// not in use: specializations for float, would not work for scalar types like unit<float, tag>
-		//template <int K> using f2 = vec<float, 2, K>;
-		//template <int K> using f3 = vec<float, 3, K>;
-		//template <int K> using f4 = vec<float, 4, K>;
-		//
-		//template <int K>
-		//__m128 load(const f2<K>& v) { return _mm_unpacklo_ps(_mm_set_ss(v[0]), _mm_set_ss(v[1])); }
-		//template <>
-		//__m128 load<1>(const f2<1>& v) { return _mm_castpd_ps(_mm_set_sd(reinterpret_cast<const double&>(v))); }
-		//
-		//template <int K>
-		//__m128 load(const f3<K>& v) { return _mm_unpacklo_ps(_mm_unpacklo_ps(_mm_set_ss(v[0]), _mm_set_ss(v[2])), _mm_set_ss(v[1])); }
-		//template <>
-		//__m128 load<1>(const f3<1>& v) { return _mm_movelh_ps(load(reinterpret_cast<const f2<1>&>(v)), _mm_set_ss(v[2])); }
-		//
-		//template <int K>
-		//__m128 load(const f4<K>& v) { return _mm_set_ps(v[3], v[2], v[1], v[0]); }
-		//template <>
-		//inline __m128 load<1>(const f4<1>& v) { return _mm_loadu_ps(data(v)); }
-		//
-		//inline __m128 flip_pairs(__m128 r) { return _mm_shuffle_ps(r, r, _MM_SHUFFLE(2, 3, 0, 1)); }
-		//
-		//inline __m128 mul(__m128 a, __m128 b) { return _mm_mul_ps(a, b); }
-		//inline __m128 add_shift2(__m128 r) { return _mm_add_ps(r, _mm_shuffle_ps(r, r, _MM_SHUFFLE(1, 0, 3, 2))); }
-		//inline __m128 add_shift1(__m128 r) { return _mm_add_ps(r, _mm_shuffle_ps(r, r, _MM_SHUFFLE(0, 3, 2, 1))); }
-		//inline __m128 sub_shift1(__m128 r) { return _mm_sub_ps(r, _mm_shuffle_ps(r, r, _MM_SHUFFLE(0, 3, 2, 1))); }
-		//inline float store_scalar(__m128 r) { float result; _mm_store_ss(&result, r); return result; }
-		//
-		//template <int KA, int KB>
-		//struct binary_op<float, float, 2, KA, KB>
-		//{
-		//	static auto dot(const f2<KA>& a, const f2<KB>& b)
-		//	{
-		//		return store_scalar(add_shift1(mul(load(a), load(b))));
-		//	}
-		//	static auto cross(const f2<KA>& a, const f2<KB>& b)
-		//	{
-		//		return store_scalar(sub_shift1(mul(load(a), flip_pairs(load(b)))));
-		//	}
-		//};
-		//template <int KA, int KB>
-		//struct binary_op<float, float, 3, KA, KB>
-		//{
-		//	static auto dot(const f3<KA>& a, const f3<KB>& b)
-		//	{
-		//		return store_scalar(add_shift1(add_shift2(mul(load(a), load(b)))));
-		//	}
-		//	static auto cross(const f3<KA>& a, const f3<KB>& b)
-		//	{
-		//		return f3<1>
-		//		{
-		//			a[1] * b[2] - a[2] * b[1],
-		//				a[2] * b[0] - a[0] * b[2],
-		//				a[0] * b[1] - a[1] * b[0]
-		//		};
-		//	}
-		//};
-		//template <int KA, int KB>
-		//struct binary_op<float, float, 4, KA, KB>
-		//{
-		//	static auto dot(const f4<KA>& a, const f4<KB>& b)
-		//	{
-		//		return store_scalar(add_shift1(add_shift2(mul(load(a), load(b)))));
-		//	}
-		//};
 	}
 
 	TEMPLATE_VECTORS_AB
