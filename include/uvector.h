@@ -16,146 +16,152 @@
 
 namespace uv
 {
-	template <size_t A, size_t B>
-	struct equal_test { static_assert(A == B, "vectors must be of equal length"); };
-	template <size_t A, size_t B>
-	struct greater_test { static_assert(A > B, "vector too short"); };
-
-	template <size_t A, size_t B>
-	constexpr equal_test<A, B> require_equal = {};
-
-
-	template <class A, class B>
-	struct add_result { using type = decltype(std::declval<A>() + std::declval<B>()); };
-	template <class A, class B>
-	struct sub_result { using type = decltype(std::declval<A>() - std::declval<B>()); };
-	template <class A, class B>
-	struct mul_result { using type = decltype(std::declval<A>() * std::declval<B>()); };
-	template <class A, class B>
-	struct div_result { using type = decltype(std::declval<A>() / std::declval<B>()); };
-
-	template <class A, class B = A>
-	using add_result_t = typename add_result<A, B>::type;
-	template <class A, class B = A>
-	using sub_result_t = typename sub_result<A, B>::type;
-	template <class A, class B = A>
-	using mul_result_t = typename mul_result<A, B>::type;
-	template <class A, class B = A>
-	using div_result_t = typename div_result<A, B>::type;
-
-	template <class A, class B = A>
-	using inner_product_t = add_result_t<mul_result_t<A, B>>;
-
-	template <class T, int K>
-	class stride_iterator
-	{
-		T* _ptr = nullptr;
-	public:
-		using iterator_category = std::random_access_iterator_tag;
-		using difference_type = ptrdiff_t;
-		using value_type = T;
-		using reference = T&;
-		using pointer = T*;
-
-		stride_iterator() = default;
-		stride_iterator(T* ptr) : _ptr(ptr) { }
-
-		stride_iterator& operator++() { _ptr += K; return *this; }
-		stride_iterator& operator--() { _ptr += K; return *this; }
-		stride_iterator operator++(int) { return { _ptr + K }; }
-		stride_iterator operator--(int) { return { _ptr - K }; }
-
-		stride_iterator& operator+=(ptrdiff_t n) { _ptr += K*n; return *this; }
-		stride_iterator& operator-=(ptrdiff_t n) { _ptr -= K*n; return *this; }
-
-		ptrdiff_t operator-(const stride_iterator& other) const { return (_ptr - other._ptr)/K; }
-
-		reference operator[](ptrdiff_t n) const { return _ptr[n*K]; }
-		reference operator[](size_t    n) const { return _ptr[n*K]; }
-		reference operator* () const { return *_ptr; }
-		pointer   operator->() const { return  _ptr; }
-
-		bool operator==(const stride_iterator& other) const { return _ptr == other._ptr; }
-		bool operator!=(const stride_iterator& other) const { return _ptr != other._ptr; }
-
-		bool operator< (const stride_iterator& other) const { return _ptr <  other._ptr; }
-		bool operator<=(const stride_iterator& other) const { return _ptr <= other._ptr; }
-		bool operator>=(const stride_iterator& other) const { return _ptr >= other._ptr; }
-		bool operator> (const stride_iterator& other) const { return _ptr >  other._ptr; }
-	};
-
-	template <class T>
-	class repeat_iterator
-	{
-		T* _ptr = nullptr;
-		ptrdiff_t _i = 0;
-
-		repeat_iterator(T* ptr, ptrdiff_t i) : _ptr(ptr), _i(i) { }
-	public:
-		using iterator_category = std::random_access_iterator_tag;
-		using difference_type = ptrdiff_t;
-		using value_type = T;
-		using reference = T&;
-		using pointer = T*;
-
-		repeat_iterator() = default;
-		repeat_iterator(T* ptr) : _ptr(ptr) { }
-
-		repeat_iterator& operator++() { ++_i; return *this; }
-		repeat_iterator& operator--() { --_i; return *this; }
-		repeat_iterator operator++(int) { return { _ptr, _i + 1 }; }
-		repeat_iterator operator--(int) { return { _ptr, _i - 1 }; }
-
-		repeat_iterator& operator+=(ptrdiff_t n) { _i += n; return *this; }
-		repeat_iterator& operator-=(ptrdiff_t n) { _i -= n; return *this; }
-
-		ptrdiff_t operator-(const repeat_iterator& other) const { return _i - other._i; }
-
-		reference operator[](ptrdiff_t) const { return *_ptr; }
-		reference operator[](size_t   ) const { return *_ptr; }
-		reference operator* () const { return *_ptr; }
-		pointer   operator->() const { return  _ptr; }
-
-		bool operator==(const repeat_iterator& other) const { return _i == other._i; }
-		bool operator!=(const repeat_iterator& other) const { return _i != other._i; }
-		bool operator< (const repeat_iterator& other) const { return _i <  other._i; }
-		bool operator<=(const repeat_iterator& other) const { return _i <= other._i; }
-		bool operator>=(const repeat_iterator& other) const { return _i >= other._i; }
-		bool operator> (const repeat_iterator& other) const { return _i >  other._i; }
-	};
-
-	template <class C, size_t N>
-	class indexable_from_begin
-	{
-		      C* self()       { return reinterpret_cast<      C*>(this); }
-		const C* self() const { return reinterpret_cast<const C*>(this); }
-	public:
-
-		auto end()       { return self()->begin() + N; }
-		auto end() const { return self()->begin() + N; }
-
-		auto& at(size_t i)       { if (i >= N) throw std::out_of_range("strided vector element out of range"); return self()->begin()[i]; }
-		auto& at(size_t i) const { if (i >= N) throw std::out_of_range("strided vector element out of range"); return self()->begin()[i]; }
-		auto& operator[](size_t i)       { return self()->begin()[i]; }
-		auto& operator[](size_t i) const { return self()->begin()[i]; }
-	};
 	template <class T, size_t N, int K>
 	class vec;
-	template <class T, size_t N, int K>
-	class indexable_from_begin_vec : public indexable_from_begin<vec<T, N, K>, N> { };
+
+	namespace details
+	{
+		template <size_t A, size_t B>
+		struct equal_test { static_assert(A == B, "vectors must be of equal length"); };
+		template <size_t A, size_t B>
+		struct greater_test { static_assert(A > B, "vector too short"); };
+
+		template <size_t A, size_t B>
+		constexpr equal_test<A, B> require_equal = {};
+
+
+		template <class A, class B>
+		struct add_result { using type = decltype(std::declval<A>() + std::declval<B>()); };
+		template <class A, class B>
+		struct sub_result { using type = decltype(std::declval<A>() - std::declval<B>()); };
+		template <class A, class B>
+		struct mul_result { using type = decltype(std::declval<A>() * std::declval<B>()); };
+		template <class A, class B>
+		struct div_result { using type = decltype(std::declval<A>() / std::declval<B>()); };
+
+		template <class A, class B = A>
+		using add_result_t = typename add_result<A, B>::type;
+		template <class A, class B = A>
+		using sub_result_t = typename sub_result<A, B>::type;
+		template <class A, class B = A>
+		using mul_result_t = typename mul_result<A, B>::type;
+		template <class A, class B = A>
+		using div_result_t = typename div_result<A, B>::type;
+
+		template <class A, class B = A>
+		using inner_product_t = add_result_t<mul_result_t<A, B>>;
+
+		template <class T, int K>
+		class stride_iterator
+		{
+			T* _ptr = nullptr;
+		public:
+			using iterator_category = std::random_access_iterator_tag;
+			using difference_type = ptrdiff_t;
+			using value_type = T;
+			using reference = T&;
+			using pointer = T*;
+
+			stride_iterator() = default;
+			stride_iterator(T* ptr) : _ptr(ptr) { }
+
+			stride_iterator& operator++() { _ptr += K; return *this; }
+			stride_iterator& operator--() { _ptr += K; return *this; }
+			stride_iterator operator++(int) { return { _ptr + K }; }
+			stride_iterator operator--(int) { return { _ptr - K }; }
+
+			stride_iterator& operator+=(ptrdiff_t n) { _ptr += K*n; return *this; }
+			stride_iterator& operator-=(ptrdiff_t n) { _ptr -= K*n; return *this; }
+
+			ptrdiff_t operator-(const stride_iterator& other) const { return (_ptr - other._ptr) / K; }
+
+			reference operator[](ptrdiff_t n) const { return _ptr[n*K]; }
+			reference operator[](size_t    n) const { return _ptr[n*K]; }
+			reference operator* () const { return *_ptr; }
+			pointer   operator->() const { return  _ptr; }
+
+			bool operator==(const stride_iterator& other) const { return _ptr == other._ptr; }
+			bool operator!=(const stride_iterator& other) const { return _ptr != other._ptr; }
+
+			bool operator< (const stride_iterator& other) const { return _ptr < other._ptr; }
+			bool operator<=(const stride_iterator& other) const { return _ptr <= other._ptr; }
+			bool operator>=(const stride_iterator& other) const { return _ptr >= other._ptr; }
+			bool operator> (const stride_iterator& other) const { return _ptr > other._ptr; }
+		};
+
+		template <class T>
+		class repeat_iterator
+		{
+			T* _ptr = nullptr;
+			ptrdiff_t _i = 0;
+
+			repeat_iterator(T* ptr, ptrdiff_t i) : _ptr(ptr), _i(i) { }
+		public:
+			using iterator_category = std::random_access_iterator_tag;
+			using difference_type = ptrdiff_t;
+			using value_type = T;
+			using reference = T&;
+			using pointer = T*;
+
+			repeat_iterator() = default;
+			repeat_iterator(T* ptr) : _ptr(ptr) { }
+
+			repeat_iterator& operator++() { ++_i; return *this; }
+			repeat_iterator& operator--() { --_i; return *this; }
+			repeat_iterator operator++(int) { return { _ptr, _i + 1 }; }
+			repeat_iterator operator--(int) { return { _ptr, _i - 1 }; }
+
+			repeat_iterator& operator+=(ptrdiff_t n) { _i += n; return *this; }
+			repeat_iterator& operator-=(ptrdiff_t n) { _i -= n; return *this; }
+
+			ptrdiff_t operator-(const repeat_iterator& other) const { return _i - other._i; }
+
+			reference operator[](ptrdiff_t) const { return *_ptr; }
+			reference operator[](size_t) const { return *_ptr; }
+			reference operator* () const { return *_ptr; }
+			pointer   operator->() const { return  _ptr; }
+
+			bool operator==(const repeat_iterator& other) const { return _i == other._i; }
+			bool operator!=(const repeat_iterator& other) const { return _i != other._i; }
+			bool operator< (const repeat_iterator& other) const { return _i < other._i; }
+			bool operator<=(const repeat_iterator& other) const { return _i <= other._i; }
+			bool operator>=(const repeat_iterator& other) const { return _i >= other._i; }
+			bool operator> (const repeat_iterator& other) const { return _i > other._i; }
+		};
+
+		template <class C, size_t N>
+		class indexable_from_begin
+		{
+			C* self() { return reinterpret_cast<C*>(this); }
+			const C* self() const { return reinterpret_cast<const C*>(this); }
+		public:
+
+			auto end() { return self()->begin() + N; }
+			auto end() const { return self()->begin() + N; }
+
+			auto& at(size_t i) { if (i >= N) throw std::out_of_range("strided vector element out of range"); return self()->begin()[i]; }
+			auto& at(size_t i) const { if (i >= N) throw std::out_of_range("strided vector element out of range"); return self()->begin()[i]; }
+			auto& operator[](size_t i) { return self()->begin()[i]; }
+			auto& operator[](size_t i) const { return self()->begin()[i]; }
+		};
+		template <class T, size_t N, int K>
+		class indexable_from_begin_vec : public indexable_from_begin<vec<T, N, K>, N> { };
+	}
+
+
 
 	template <class T, size_t N, int K = 1>
-	class vec : public indexable_from_begin_vec<T,N,K>
+	class vec : public details::indexable_from_begin_vec<T,N,K>
 	{
 		T _first;
 	public:
 		static_assert(N > 1, "vectors must have at least two dimensions");
 
-		using indexable_from_begin_vec<T, N, K>::operator[];
+		using details::indexable_from_begin_vec<T, N, K>::operator[];
 
 		using size_type = size_t;
-		using       iterator = stride_iterator<T, K>;
-		using const_iterator = stride_iterator<const T, K>;
+		using       iterator = details::stride_iterator<T, K>;
+		using const_iterator = details::stride_iterator<const T, K>;
 		using       reference = T&;
 		using const_reference = const T&;
 		using difference_type = ptrdiff_t;
@@ -177,15 +183,15 @@ namespace uv
 	};
 
 	template <class T, size_t N>
-	class vec<T, N, 0> : public indexable_from_begin_vec<T, N, 0>
+	class vec<T, N, 0> : public details::indexable_from_begin_vec<T, N, 0>
 	{
 		T _value;
 	public:
 		static_assert(N > 1, "vectors must have at least two dimensions");
 
 		using size_type = size_t;
-		using       iterator = repeat_iterator<T>;
-		using const_iterator = repeat_iterator<const T>;
+		using       iterator = details::repeat_iterator<T>;
+		using const_iterator = details::repeat_iterator<const T>;
 		using       reference = T&;
 		using const_reference = const T&;
 		using difference_type = ptrdiff_t;
@@ -263,7 +269,7 @@ namespace uv
 	TEMPLATE_VECTOR_A
 	auto differences(const VECTOR_A& a)
 	{
-		vec<sub_result_t<A>, NA - 1> result;
+		vec<details::sub_result_t<A>, NA - 1> result;
 		for (size_t i = 0; i < NA - 1; ++i)
 			result[i] = a[i + 1] - a[i];
 		return result;
@@ -274,7 +280,7 @@ namespace uv
 	TEMPLATE_VECTORS_AB 
 	inline auto operator==(const VECTOR_A& a, const VECTOR_B& b)
 	{
-		require_equal<NA, NB>;
+		details::require_equal<NA, NB>;
 		vec<bool, NA> result;
 		for (size_t i = 0; i < NA; ++i)
 			result[i] = a[i] == b[i];
@@ -283,7 +289,7 @@ namespace uv
 	TEMPLATE_VECTORS_AB
 	inline auto operator!=(const VECTOR_A& a, const VECTOR_B& b) 
 	{ 
-		require_equal<NA, NB>;
+		details::require_equal<NA, NB>;
 		vec<bool, NA> result;
 		for (size_t i = 0; i < NA; ++i)
 			result[i] = a[i] != b[i];
@@ -298,6 +304,7 @@ namespace uv
 	TEMPLATE_VECTORS_AB
 	inline auto operator+(const VECTOR_A& a, const VECTOR_B& b)
 	{
+		using namespace details;
 		require_equal<NA, NB>;
 		vec<add_result_t<A,B>, NA> result;
 		for (size_t i = 0; i < NA; ++i)
@@ -307,6 +314,7 @@ namespace uv
 	TEMPLATE_VECTORS_AB
 	inline auto operator-(const VECTOR_A& a, const VECTOR_B& b)
 	{
+		using namespace details;
 		require_equal<NA, NB>;
 		vec<sub_result_t<A,B>, NA> result;
 		for (size_t i = 0; i < NA; ++i)
@@ -316,6 +324,7 @@ namespace uv
 	TEMPLATE_VECTORS_AB
 	inline auto operator*(const VECTOR_A& a, const VECTOR_B& b)
 	{
+		using namespace details;
 		require_equal<NA, NB>;
 		vec<mul_result_t<A, B>, NA> result;
 		for (size_t i = 0; i < NA; ++i)
@@ -333,6 +342,7 @@ namespace uv
 	TEMPLATE_VECTOR_A_SCALAR_B
 	inline auto operator/(const VECTOR_A& a, B b)
 	{
+		using namespace details;
 		vec<div_result_t<A, B>, NA> result;
 		for (size_t i = 0; i < NA; ++i)
 			result[i] = a[i] / b;
@@ -381,21 +391,24 @@ namespace uv
 	}
 
 	TEMPLATE_VECTORS_AB
-	inner_product_t<A, B> dot(const VECTOR_A& a, const VECTOR_B& b)
+	details::inner_product_t<A, B> dot(const VECTOR_A& a, const VECTOR_B& b)
 	{
+		using namespace details;
 		require_equal<NA, NB>;
-		return details::binary_op<A, B, NA, KA, KB>::dot(a, b);
+		return binary_op<A, B, NA, KA, KB>::dot(a, b);
 	}
 	TEMPLATE_VECTORS_AB
 	auto cross(const VECTOR_A& a, const VECTOR_B& b)
 	{
+		using namespace details;
 		require_equal<NA, NB>;
 		static_assert(NA == 2 || NA == 3, "cross product only defined in 3 or 2 dimensions");
-		return details::binary_op<A, B, NA, KA, KB>::cross(a, b);
+		return binary_op<A, B, NA, KA, KB>::cross(a, b);
 	}
 	TEMPLATE_VECTOR_A
 	auto square(const VECTOR_A& a)
 	{
+		using namespace details;
 		add_result_t<mul_result_t<A>> result(0);
 		for (int i = 0; i < NA; ++i)
 			result += a[i] * a[i];
@@ -430,13 +443,14 @@ namespace uv
 	inline auto vector(Args... args) { return vector(T(args)...); }
 
 
-	template <size_t N>  greater_test<N, 0> requires_x;
-	template <size_t N>  greater_test<N, 1> requires_y;
-	template <size_t N>  greater_test<N, 2> requires_z;
-	template <size_t N>  greater_test<N, 3> requires_w;
 
 	namespace selectors
 	{
+		template <size_t N>  details::greater_test<N, 0> requires_x;
+		template <size_t N>  details::greater_test<N, 1> requires_y;
+		template <size_t N>  details::greater_test<N, 2> requires_z;
+		template <size_t N>  details::greater_test<N, 3> requires_w;
+
 		template <class T, size_t N, int K> T& x(vec<T, N, K>& v) { requires_x<N>; return v[0]; }
 		template <class T, size_t N, int K> T& y(vec<T, N, K>& v) { requires_y<N>; return v[1]; }
 		template <class T, size_t N, int K> T& z(vec<T, N, K>& v) { requires_z<N>; return v[2]; }

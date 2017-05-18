@@ -5,7 +5,7 @@
 namespace uv
 {
 	template <class T, size_t R, size_t C>
-	class mat : public equal_test<sizeof(vec<T, R, C>), sizeof(T)>
+	class mat : public details::equal_test<sizeof(vec<T, R, C>), sizeof(T)>
 	{
 	public:
 		static_assert(R > 1);
@@ -154,7 +154,7 @@ namespace uv
 	auto operator*(const mat<A, R, C>& m, const vec<B, N, K>& v)
 	{
 		static_assert(C == N, "matrix column count does not match vector length");
-		vec<inner_product_t<A, B>, R> result;
+		vec<details::inner_product_t<A, B>, R> result;
 		for (int i = 0; i < R; ++i)
 			result[i] = dot(m.row(i), v);
 		return result;
@@ -163,7 +163,7 @@ namespace uv
 	auto operator*(const vec<A, N, K>& v, const mat<B, R, C>& m)
 	{
 		static_assert(R == N, "matrix row count does not match vector length");
-		vec<inner_product_t<A,B>, C> result;
+		vec<details::inner_product_t<A,B>, C> result;
 		for (int i = 0; i < C; ++i)
 			result[i] = dot(m.col(i), v);
 		return result;
@@ -173,9 +173,17 @@ namespace uv
 	auto operator*(const mat<A, RA, CA>& a, const mat<B, RB, CB>& b)
 	{
 		static_assert(CA == RB, "invalid matrix dimensions for multiplication");
-		mat<inner_product_t<A, B>, RA, CB> result;
+		mat<details::inner_product_t<A, B>, RA, CB> result;
 		for (int i = 0; i < CB; ++i)
 			result.col(i) = a * b.col(i);
 		return result;
 	}
+
+	using float22 = mat<float, 2, 2>;
+	using float33 = mat<float, 3, 3>;
+	using float44 = mat<float, 4, 4>;
+
+	using double22 = mat<double, 2, 2>;
+	using double33 = mat<double, 3, 3>;
+	using double44 = mat<double, 4, 4>;
 }
