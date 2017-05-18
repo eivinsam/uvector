@@ -495,6 +495,18 @@ namespace uv
 			out << (i == 0 ? "[" : ", ") << v[i];
 		return out << ']';
 	}
+
+	using bool2 = vec<bool, 2>;
+	using bool3 = vec<bool, 3>;
+	using bool4 = vec<bool, 4>;
+
+	using float2 = vec<float, 2>;
+	using float3 = vec<float, 3>;
+	using float4 = vec<float, 4>;
+
+	using double2 = vec<double, 2>;
+	using double3 = vec<double, 3>;
+	using double4 = vec<double, 4>;
 }
 
 #undef TEMPLATE_VECTOR_A
