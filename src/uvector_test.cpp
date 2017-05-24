@@ -1,6 +1,8 @@
-#include <ucomponent.h>
-#include <umatrix.h>
+#include <uvector/vector_operations.h>
+#include <uvector/component_operations.h>
+#include <uvector/matrix_operations.h>
 #include <units.h>
+
 
 #include <tester_with_macros.h>
 #include <random>
@@ -42,14 +44,14 @@ void test_selectors(T& a)
 		assert(sv.size() == vi.size());
 		auto vit = vi.begin();
 		for (size_t k = 0; k < sv.size(); ++k, ++vit)
-			CHECK(sv[k] == v[*vit]);
+			CHECK(&sv[k] == &v[*vit]);
 	};
 	tester::section = "selectors";
 
-	CHECK(x(a) == a[0]);
-	CHECK(y(a) == a[1]);
-	CHECK(z(a) == a[2]);
-	CHECK(w(a) == a[3]);
+	CHECK(&x(a) == &a[0]);
+	CHECK(&y(a) == &a[1]);
+	CHECK(&z(a) == &a[2]);
+	CHECK(&w(a) == &a[3]);
 
 	check_selector(xy(a), a, { 0, 1 });
 	check_selector(yz(a), a, { 1, 2 });
@@ -79,9 +81,9 @@ void test_arithmetics(const T& a, const T& b, const typename T::value_type c)
 
 	CHECK_EACH(a + b == vector(a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]));
 	CHECK_EACH(a - b == vector(a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]));
-	CHECK_EACH(a * c == vector(a[0] * c, a[1] * c, a[2] * c, a[3] * c));
-	CHECK_EACH(c * a == a * c);
-	CHECK_EACH(a / c == vector(a[0] / c, a[1] / c, a[2] / c, a[3] / c));
+	CHECK_EACH(a * s(c) == vector(a[0] * c, a[1] * c, a[2] * c, a[3] * c));
+	CHECK_EACH(s(c) * a == a * s(c));
+	CHECK_EACH(a / s(c) == vector(a[0] / c, a[1] / c, a[2] / c, a[3] / c));
 }
 template <class T>
 void test_dot_product(const T& a, const T& b)
@@ -113,7 +115,7 @@ void test_decomposition(const T& a)
 	auto d = decompose(a);
 	CHECK(d.length == sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2] + a[3] * a[3]));
 	CHECK_EACH(d.direction == vector(a[0] / d.length, a[1] / d.length, a[2] / d.length, a[3] / d.length));
-	CHECK_EACH_APPROX(a == d.direction * d.length);
+	CHECK_EACH_APPROX(a == d.direction * s(d.length));
 }
 template <class T, size_t N>
 void test_components(const vec<T,N>& a, const T c)
@@ -142,25 +144,24 @@ void test_matrix(const vec<T, N>& a)
 
 	const mat<U, N, N> A = d;
 
-	CHECK_EACH(A*a == vector(A.row(0, 0)*a[0], A.row(1, 1)*a[1], A.row(2, 2)*a[2], A.row(3, 3)*a[3]));
-	CHECK_EACH(A*a == A.diagonal()*a);
+	CHECK_EACH(A*a == vector(rows(A)[0][0]*a[0], rows(A)[1][1]*a[1], rows(A)[2][2]*a[2], rows(A)[3][3]*a[3]));
+	CHECK_EACH(A*a == diagonal(A)*a);
 	mat<U, N, N> B = U(0);
 
-	CHECK_EACH(B.rows() == U(0));
+	CHECK_EACH(rows(B) == s(U(0)));
 
 	for (size_t i = 0; i < N; ++i)
-		B.row(i, i) = d[i];
+		rows(B)[i][i] = d[i];
 
-	CHECK_EACH(A.rows() == B.rows());
+	CHECK_EACH(rows(A) == rows(B));
 
 	for (size_t i = 0; i < N; ++i)
 		for (size_t j = 0; j < i; ++j)
-			B.row(i, j) = B.row(j, i) = U(signed_unit_float());
+			rows(B)[i][j] = rows(B)[j][i] = U(signed_unit_float());
 
-	CHECK_EACH(B.rows() == B.cols());
-
-
-	CHECK_EACH((A*B).rows() == matrix_rows(d[0] * B.row(0), d[1] * B.row(1), d[2] * B.row(2), d[3] * B.row(3)).rows());
+	CHECK_EACH(rows(B) == cols(B));
+	
+	CHECK_EACH(rows(A*B) == rows(rows(s(d[0]) * rows(B)[0], s(d[1]) * rows(B)[1], s(d[2]) * rows(B)[2], s(d[3]) * rows(B)[3])));
 }
 
 template <class T>
@@ -200,7 +201,7 @@ TEST_CASE("uvector")
 	{
 		for (int x = 0; x < 16; ++x)
 		{
-			const auto boolv = vector<bool>((x & 1) != 0, (x & 2) != 0, (x & 4) != 0, (x & 8) != 0);
+			const auto boolv = vector((x & 1) != 0, (x & 2) != 0, (x & 4) != 0, (x & 8) != 0);
 			CHECK(all(boolv) == (x == 0b1111));
 			CHECK(any(boolv) == (x != 0));
 		}

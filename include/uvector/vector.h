@@ -1,0 +1,229 @@
+#pragma once
+
+#include <array>
+#include <iterator>
+#include <ostream>
+
+#include "../base/gsl.h"
+
+#include "scalar.h"
+
+namespace uv
+{
+	template <class T, size_t N, int K>
+	class vec;
+
+	namespace type
+	{
+		template <class OP, class A, class B = A> using of = decltype(OP{}(std::declval<A>(), std::declval<B>()));
+		template <class A, class B = A> using add = decltype(std::declval<A>() + std::declval<B>());
+		template <class A, class B = A> using sub = decltype(std::declval<A>() - std::declval<B>());
+		template <class A, class B = A> using mul = decltype(std::declval<A>() * std::declval<B>());
+		template <class A, class B = A> using div = decltype(std::declval<A>() / std::declval<B>());
+
+		template <class A, class B = A>
+		using inner_product = add<mul<A, B>>;
+	}
+
+	
+	namespace details
+	{
+		template <class T, int K>
+		class stride_iterator
+		{
+			T* _ptr = nullptr;
+		public:
+			using iterator_category = std::random_access_iterator_tag;
+			using difference_type = ptrdiff_t;
+			using value_type = T;
+			using reference = T&;
+			using pointer = T*;
+
+			stride_iterator() = default;
+			stride_iterator(T* ptr) : _ptr(ptr) { }
+
+			stride_iterator& operator++() { _ptr += K; return *this; }
+			stride_iterator& operator--() { _ptr += K; return *this; }
+			stride_iterator operator++(int) { return { _ptr + K }; }
+			stride_iterator operator--(int) { return { _ptr - K }; }
+
+			stride_iterator& operator+=(ptrdiff_t n) { _ptr += K*n; return *this; }
+			stride_iterator& operator-=(ptrdiff_t n) { _ptr -= K*n; return *this; }
+
+			ptrdiff_t operator-(const stride_iterator& other) const { return (_ptr - other._ptr) / K; }
+
+			reference operator[](ptrdiff_t n) const { return _ptr[n*K]; }
+			reference operator[](size_t    n) const { return _ptr[n*K]; }
+			reference operator* () const { return *_ptr; }
+			pointer   operator->() const { return  _ptr; }
+
+			bool operator==(const stride_iterator& other) const { return _ptr == other._ptr; }
+			bool operator!=(const stride_iterator& other) const { return _ptr != other._ptr; }
+
+			bool operator< (const stride_iterator& other) const { return _ptr < other._ptr; }
+			bool operator<=(const stride_iterator& other) const { return _ptr <= other._ptr; }
+			bool operator>=(const stride_iterator& other) const { return _ptr >= other._ptr; }
+			bool operator> (const stride_iterator& other) const { return _ptr > other._ptr; }
+		};
+
+		template <class T>
+		class repeat_iterator
+		{
+			T* _ptr = nullptr;
+			ptrdiff_t _i = 0;
+
+			repeat_iterator(T* ptr, ptrdiff_t i) : _ptr(ptr), _i(i) { }
+		public:
+			using iterator_category = std::random_access_iterator_tag;
+			using difference_type = ptrdiff_t;
+			using value_type = T;
+			using reference = T&;
+			using pointer = T*;
+
+			repeat_iterator() = default;
+			repeat_iterator(T* ptr) : _ptr(ptr) { }
+
+			repeat_iterator& operator++() { ++_i; return *this; }
+			repeat_iterator& operator--() { --_i; return *this; }
+			repeat_iterator operator++(int) { return { _ptr, _i + 1 }; }
+			repeat_iterator operator--(int) { return { _ptr, _i - 1 }; }
+
+			repeat_iterator& operator+=(ptrdiff_t n) { _i += n; return *this; }
+			repeat_iterator& operator-=(ptrdiff_t n) { _i -= n; return *this; }
+
+			ptrdiff_t operator-(const repeat_iterator& other) const { return _i - other._i; }
+
+			reference operator[](ptrdiff_t) const { return *_ptr; }
+			reference operator[](size_t) const { return *_ptr; }
+			reference operator* () const { return *_ptr; }
+			pointer   operator->() const { return  _ptr; }
+
+			bool operator==(const repeat_iterator& other) const { return _i == other._i; }
+			bool operator!=(const repeat_iterator& other) const { return _i != other._i; }
+			bool operator< (const repeat_iterator& other) const { return _i < other._i; }
+			bool operator<=(const repeat_iterator& other) const { return _i <= other._i; }
+			bool operator>=(const repeat_iterator& other) const { return _i >= other._i; }
+			bool operator> (const repeat_iterator& other) const { return _i > other._i; }
+		};
+
+		template <class C, size_t N>
+		class indexable_from_begin
+		{
+			C* self() { return reinterpret_cast<C*>(this); }
+			const C* self() const { return reinterpret_cast<const C*>(this); }
+		public:
+
+			auto end() { return self()->begin() + N; }
+			auto end() const { return self()->begin() + N; }
+
+			auto& at(size_t i) { if (i >= N) throw std::out_of_range("strided vector element out of range"); return self()->begin()[i]; }
+			auto& at(size_t i) const { if (i >= N) throw std::out_of_range("strided vector element out of range"); return self()->begin()[i]; }
+			auto& operator[](size_t i) { return self()->begin()[i]; }
+			auto& operator[](size_t i) const { return self()->begin()[i]; }
+		};
+		template <class T, size_t N, int K>
+		class indexable_from_begin_vec : public indexable_from_begin<vec<T, N, K>, N> { };
+	}
+
+	template <class T, size_t N, int K = 1>
+	class vec : public details::indexable_from_begin_vec<T,N,K>
+	{
+		T _first;
+	public:
+		static_assert(N > 1, "vectors must have at least two dimensions");
+
+		using details::indexable_from_begin_vec<T, N, K>::operator[];
+
+		using size_type = size_t;
+		using       iterator = details::stride_iterator<T, K>;
+		using const_iterator = details::stride_iterator<const T, K>;
+		using       reference = T&;
+		using const_reference = const T&;
+		using difference_type = ptrdiff_t;
+		using value_type = T;
+		using scalar_type = T;
+
+		vec() = delete;
+		vec(const vec&) = delete;
+
+		template <int KB>
+		vec& operator=(const vec<T, N, KB>& other) { for (int i = 0; i < N; ++i) (*this)[i] = other[i]; return *this; }
+		vec& operator=(T value)                    { for (int i = 0; i < N; ++i) (*this)[i] = value;    return *this; }
+
+		auto begin()       { return       iterator{ reinterpret_cast<      T*>(this) }; }
+		auto begin() const { return const_iterator{ reinterpret_cast<const T*>(this) }; }
+
+		constexpr size_t size() const { return N; }
+
+		explicit operator bool() const { for (size_t i = 0; i < N; ++i) if (!(*this)[i]) return false; return true; }
+	};
+
+	template <class T, size_t N>
+	class vec<T, N, 0> : public details::indexable_from_begin_vec<T, N, 0>
+	{
+		T _value;
+	public:
+		static_assert(N > 1, "vectors must have at least two dimensions");
+
+		using size_type = size_t;
+		using       iterator = details::repeat_iterator<T>;
+		using const_iterator = details::repeat_iterator<const T>;
+		using       reference = T&;
+		using const_reference = const T&;
+		using difference_type = ptrdiff_t;
+		using value_type = T;
+		using scalar_type = T;
+
+		vec() { }
+		vec(const vec&) = default;
+		vec(T value) : _value(value) { }
+
+		vec& operator=(const vec& other) { _value = other._value; };
+		vec& operator=(T value) { _value = value; }
+
+		auto begin()       { return       iterator{ reinterpret_cast<      T*>(this) }; }
+		auto begin() const { return const_iterator{ reinterpret_cast<const T*>(this) }; }
+
+		constexpr size_t size() const { return N; }
+
+		explicit operator bool() const { return bool(_value); }
+	};
+
+	template <class T, size_t N>
+	class vec<T, N, 1> : public std::array<T, N>
+	{
+	public:
+		using scalar_type = T;
+
+		static_assert(N > 1, "vectors must have at least two dimensions");
+
+		template <class... Args>
+		explicit vec(Args... args) 
+		{
+			static_assert(sizeof...(Args) == N, "invalid number of elements"); 
+			std::array<T, N>::operator=({ T(args)... });
+		}
+
+		vec() { }
+		template <int KB>
+		vec(const vec<T, N, KB>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = other[i]; }
+
+		template <int K>
+		vec& operator=(const vec<T, N, K>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = other[i]; return *this; }
+		vec& operator=(T value) { for (size_t i = 0; i < N; ++i) (*this)[i] = value; return *this; }
+
+		explicit operator bool() const { for (size_t i = 0; i < N; ++i) if (!(*this)[i]) return false; return true; }
+	};
+
+	using bool2 = vec<bool, 2>;
+	using bool3 = vec<bool, 3>;
+	using bool4 = vec<bool, 4>;
+
+	using float2 = vec<float, 2>;
+	using float3 = vec<float, 3>;
+	using float4 = vec<float, 4>;
+
+	using double2 = vec<double, 2>;
+	using double3 = vec<double, 3>;
+	using double4 = vec<double, 4>;
+}

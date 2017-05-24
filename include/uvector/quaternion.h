@@ -1,6 +1,9 @@
 #pragma once
 
-#include "umatrix.h"
+namespace uv { }
+
+#include "vector_operations.h"
+#include "matrix.h"
 
 namespace uv
 {
@@ -17,7 +20,7 @@ namespace uv
 		quaternion(const quaternion& q) : xyz(q.xyz), w(q.w) { }
 		quaternion(T x, T y, T z, T w) : xyz(x, y, z), w(w) { }
 		template <int K>
-		quaternion(T angle, const gvec<T, 3, K>& axis)
+		quaternion(T angle, const vec<T, 3, K>& axis)
 		{
 			auto ax = axis.normalized();
 			angle *= T(0.5);
@@ -103,7 +106,7 @@ namespace uv
 		}
 
 		template <int K>
-		vecT operator*(const gvec<T, 3, K>& v) { return (v*(w*w - T(0.5)) + cross(xyz, v)*w + xyz*dot(xyz, v)) * 2; }
+		vecT operator*(const vec<T, 3, K>& v) { return (v*(w*w - T(0.5)) + cross(xyz, v)*w + xyz*dot(xyz, v)) * 2; }
 	};
 
 	template <class T>
