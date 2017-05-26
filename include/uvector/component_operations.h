@@ -60,3 +60,9 @@ namespace uv
 		return Component<decltype(*a * *b), IA>{ *a * *b };
 	}
 }
+
+#define UVECTOR_COMPONENT_OPS_DEFINED
+
+#ifdef UVECTOR_MATRIX_OPS_DEFINED
+#include "cross/matrix_component.h"
+#endif

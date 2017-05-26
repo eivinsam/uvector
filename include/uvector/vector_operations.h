@@ -1,6 +1,7 @@
 #pragma once
 
 #include "details/vector_details.h"
+#include "scalar.h"
 
 #define TEMPLATE_VECTOR_A template <class A, size_t NA, int KA>
 #define TEMPLATE_VECTORS_AB template <class A, class B, size_t NA, size_t NB, int KA, int KB>
@@ -227,3 +228,5 @@ namespace uv
 #undef TEMPLATE_VECTOR_A_SCALAR_B
 #undef VECTOR_A
 #undef VECTOR_B
+
+#define UVECTOR_VECTOR_OPS_DEFINED

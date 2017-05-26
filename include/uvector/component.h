@@ -1,7 +1,5 @@
 #pragma once
 
-#include "vector.h"
-
 namespace uv
 {
 	template <class T, size_t I>

@@ -6,8 +6,6 @@
 
 #include "../base/gsl.h"
 
-#include "scalar.h"
-
 namespace uv
 {
 	template <class T, size_t N, int K>

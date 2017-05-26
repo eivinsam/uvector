@@ -1,6 +1,7 @@
 #pragma once
 
 #include "details/matrix_details.h"
+#include "scalar.h"
 
 #define TEMPLATE_MATRIX_A template <class A, size_t RA, size_t CA>
 #define MATRIX_A Matrix<A, RA, CA>
@@ -130,3 +131,9 @@ namespace uv
 
 	//template <class A, class B, size_t RA, size_t CA, size_t K>
 }
+
+#define UVECTOR_MATRIX_OPS_DEFINED
+
+#ifdef UVECTOR_COMPONENT_OPS_DEFINED
+#include "cross/matrix_component.h"
+#endif
