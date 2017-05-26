@@ -8,26 +8,26 @@ namespace uv { }
 namespace uv
 {
 	template <class T>
-	class quaternion
+	class Quaternion
 	{
-		typedef vec<T, 3> vecT;
-		quaternion(const vecT& xyz, T w) : xyz(xyz), w(w) { }
+		typedef Vector<T, 3> vecT;
+		Quaternion(const vecT& xyz, T w) : xyz(xyz), w(w) { }
 	public:
 		vecT xyz;
 		T w;
 
-		quaternion() { }
-		quaternion(const quaternion& q) : xyz(q.xyz), w(q.w) { }
-		quaternion(T x, T y, T z, T w) : xyz(x, y, z), w(w) { }
+		Quaternion() { }
+		Quaternion(const Quaternion& q) : xyz(q.xyz), w(q.w) { }
+		Quaternion(T x, T y, T z, T w) : xyz(x, y, z), w(w) { }
 		template <int K>
-		quaternion(T angle, const vec<T, 3, K>& axis)
+		Quaternion(T angle, const Vector<T, 3, K>& axis)
 		{
 			auto ax = axis.normalized();
 			angle *= T(0.5);
 			xyz = ax*sin(angle);
 			w = cos(angle);
 		}
-		quaternion(const mat<T, 3, 3>& m)
+		Quaternion(const Matrix<T, 3, 3>& m)
 		{
 			static const T h = T(0.5);
 			static const T q = T(0.25);
@@ -67,51 +67,51 @@ namespace uv
 				w = (m[0][1] - m[1][0]) * S;
 			}
 		}
-		static const quaternion& identity() { static const quaternion I(0, 0, 0, 1); return quaternion; }
+		static const Quaternion& identity() { static const Quaternion I(0, 0, 0, 1); return Quaternion; }
 
-		quaternion& operator+=(const quaternion& q) { xyz += q.xyz; w += q.w; return *this; }
-		quaternion& operator-=(const quaternion& q) { xyz -= q.xyz; w -= q.w; return *this; }
-		quaternion& operator*=(const quaternion& q) { *this = *this*q; return *this; }
+		Quaternion& operator+=(const Quaternion& q) { xyz += q.xyz; w += q.w; return *this; }
+		Quaternion& operator-=(const Quaternion& q) { xyz -= q.xyz; w -= q.w; return *this; }
+		Quaternion& operator*=(const Quaternion& q) { *this = *this*q; return *this; }
 
-		quaternion operator+(const quaternion& q) const { return quaternion(*this) += q; }
-		quaternion operator-(const quaternion& q) const { return quaternion(*this) -= q; }
-		quaternion operator*(const quaternion& q) const
+		Quaternion operator+(const Quaternion& q) const { return Quaternion(*this) += q; }
+		Quaternion operator-(const Quaternion& q) const { return Quaternion(*this) -= q; }
+		Quaternion operator*(const Quaternion& q) const
 		{
-			return quaternion(
+			return Quaternion(
 				q.xyz*w + xyz*q.w + cross(xyz, q.xyz),
 				w*q.w - dot(xyz, q.xyz));
 		}
 
-		quaternion& operator*=(T s) { xyz *= s; w *= s; return *this; }
-		quaternion& operator/=(T s) { xyz /= s; w /= s; return *this; }
+		Quaternion& operator*=(T s) { xyz *= s; w *= s; return *this; }
+		Quaternion& operator/=(T s) { xyz /= s; w /= s; return *this; }
 
-		quaternion operator*(T s) const { return quaternion(*this) *= s; }
-		quaternion operator/(T s) const { return quaternion(*this) /= s; }
+		Quaternion operator*(T s) const { return Quaternion(*this) *= s; }
+		Quaternion operator/(T s) const { return Quaternion(*this) /= s; }
 
 		T square() const { return xyz.square() + w*w; }
 		T length() const { return sqrt(square()); }
-		quaternion normalized() const { return *this / length(); }
+		Quaternion normalized() const { return *this / length(); }
 
-		quaternion operator-() const { return quaternion(-xyz, -w); }
-		quaternion conjugate() const { return quaternion(-xyz, +w); }
+		Quaternion operator-() const { return Quaternion(-xyz, -w); }
+		Quaternion conjugate() const { return Quaternion(-xyz, +w); }
 
 		vecT X() const { return (vecT(w*w - T(0.5), w*(+xyz.z), w*(-xyz.y)) + xyz*xyz.x) * 2; }
 		vecT Y() const { return (vecT(w*(-xyz.z), w*w - T(0.5), w*(+xyz.x)) + xyz*xyz.y) * 2; }
 		vecT Z() const { return (vecT(w*(+xyz.y), w*(-xyz.x), w*w - T(0.5)) + xyz*xyz.z) * 2; }
 
-		T angle_to(const quaternion& q) const
+		T angle_to(const Quaternion& q) const
 		{
 			float p = clamp(dot(xyz, q.xyz) + w*q.w, -1, 1);
 			return acos(2 * p*p - 1);
 		}
 
 		template <int K>
-		vecT operator*(const vec<T, 3, K>& v) { return (v*(w*w - T(0.5)) + cross(xyz, v)*w + xyz*dot(xyz, v)) * 2; }
+		vecT operator*(const Vector<T, 3, K>& v) { return (v*(w*w - T(0.5)) + cross(xyz, v)*w + xyz*dot(xyz, v)) * 2; }
 	};
 
 	template <class T>
-	T dot(const quaternion<T>& a, const quaternion<T>& b) { return dot(a.xyz, b.xyz) + a.w * b.w; }
+	T dot(const Quaternion<T>& a, const Quaternion<T>& b) { return dot(a.xyz, b.xyz) + a.w * b.w; }
 
-	using floatq  = quaternion<float>;
-	using doubleq = quaternion<double>;
+	using floatq  = Quaternion<float>;
+	using doubleq = Quaternion<double>;
 }

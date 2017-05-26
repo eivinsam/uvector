@@ -4,10 +4,10 @@
 
 #define TEMPLATE_VECTOR_A template <class A, size_t NA, int KA>
 #define TEMPLATE_VECTORS_AB template <class A, class B, size_t NA, size_t NB, int KA, int KB>
-#define TEMPLATE_VECTOR_A_SCALAR_B template <class A, class B, size_t NA, int KA>
 #define TEMPLATE_ANY_VECTOR template <class V, class S = typename std::remove_reference_t<V>::scalar_type>
-#define VECTOR_A vec<A, NA, KA> 
-#define VECTOR_B vec<B, NB, KB>
+#define TEMPLATE_VECTOR_A_SCALAR_B template <class A, class B, size_t NA, int KA>
+#define VECTOR_A Vector<A, NA, KA> 
+#define VECTOR_B Vector<B, NB, KB>
 
 
 namespace uv
@@ -18,46 +18,46 @@ namespace uv
 		constexpr details::equal_test<A, B> equal = {};
 	}
 
-	template <class T, size_t N> auto data(vec<T, N>& v) { return v.begin(); }
-	template <class T, size_t N> auto data(const vec<T, N>& v) { return v.begin(); }
+	template <class T, size_t N> auto data(Vector<T, N>& v) { return v.begin(); }
+	template <class T, size_t N> auto data(const Vector<T, N>& v) { return v.begin(); }
 
 	template <size_t Size, int Stride, size_t Offset, class T, size_t N, int K>
-	auto& slice(vec<T, N, K>& v) { return reinterpret_cast<vec<T, Size, K*Stride>&>(v[Offset]); }
+	auto& slice(Vector<T, N, K>& v) { return reinterpret_cast<Vector<T, Size, K*Stride>&>(v[Offset]); }
 	template <size_t Size, int Stride, size_t Offset, class T, size_t N, int K>
-	auto& slice(const vec<T, N, K>& v) { return reinterpret_cast<const vec<T, Size, K*Stride>&>(v[Offset]); }
+	auto& slice(const Vector<T, N, K>& v) { return reinterpret_cast<const Vector<T, Size, K*Stride>&>(v[Offset]); }
 
 	template <class T, size_t N, int K>
-	vec<T, (N - 1), K>& rest(vec<T, N, K>& v) { return slice<(N - 1), K, 1>(v); }
+	Vector<T, (N - 1), K>& rest(Vector<T, N, K>& v) { return slice<(N - 1), K, 1>(v); }
 	template <class T, size_t N, int K>
-	const vec<T, (N - 1), K>& rest(const vec<T, N, K>& v) { return slice<(N - 1), K, 1>(v); }
+	const Vector<T, (N - 1), K>& rest(const Vector<T, N, K>& v) { return slice<(N - 1), K, 1>(v); }
 
 	template <int K>
-	bool any(const vec<bool, 2, K>& v) { return v[0] | v[1]; }
+	bool any(const Vector<bool, 2, K>& v) { return v[0] | v[1]; }
 	template <size_t N, int K>
-	bool any(const vec<bool, N, K>& v) { return v[0] | any(rest(v)); }
+	bool any(const Vector<bool, N, K>& v) { return v[0] | any(rest(v)); }
 	template <int K>
-	bool all(const vec<bool, 2, K>& v) { return v[0] & v[1]; }
+	bool all(const Vector<bool, 2, K>& v) { return v[0] & v[1]; }
 	template <size_t N, int K>
-	bool all(const vec<bool, N, K>& v) { return v[0] & all(rest(v)); }
+	bool all(const Vector<bool, N, K>& v) { return v[0] & all(rest(v)); }
 	template <class T, int K>
-	auto sum(const vec<T, 2, K>& v) { return v[0] + v[1]; }
+	auto sum(const Vector<T, 2, K>& v) { return v[0] + v[1]; }
 	template <class T, size_t N, int K>
-	auto sum(const vec<T, N, K>& v) { return v[0] + sum(rest(v)); }
+	auto sum(const Vector<T, N, K>& v) { return v[0] + sum(rest(v)); }
 	template <class T, int K>
-	auto product(const vec<T, 2, K>& v) { return v[0] * v[1]; }
+	auto product(const Vector<T, 2, K>& v) { return v[0] * v[1]; }
 	template <class T, size_t N, int K>
-	auto product(const vec<T, N, K>& v) { return v[0] * product(rest(v)); }
+	auto product(const Vector<T, N, K>& v) { return v[0] * product(rest(v)); }
 
 	TEMPLATE_VECTOR_A
 	auto differences(const VECTOR_A& a)
 	{
-		vec<type::sub<A>, NA - 1> result;
+		Vector<type::sub<A>, NA - 1> result;
 		for (size_t i = 0; i < NA - 1; ++i)
 			result[i] = a[i + 1] - a[i];
 		return result;
 	}
 
-	template <size_t N, int K> inline auto operator!(const vec<bool, N, K>& a) { vec<bool, N> r; for (size_t i = 0; i < N; ++i) r[i] = !a[i]; return r; }
+	template <size_t N, int K> inline auto operator!(const Vector<bool, N, K>& a) { Vector<bool, N> r; for (size_t i = 0; i < N; ++i) r[i] = !a[i]; return r; }
 
 
 	TEMPLATE_VECTORS_AB	inline auto operator==(const VECTOR_A& a, const VECTOR_B& b) { require::equal<NA, NB>; return details::apply<NA, std::equal_to<>>(a, b); }
@@ -67,25 +67,25 @@ namespace uv
 	TEMPLATE_VECTORS_AB inline auto operator-(const VECTOR_A& a, const VECTOR_B& b) { require::equal<NA, NB>; return details::apply<NA, std::minus<>>(a, b); }
 	TEMPLATE_VECTORS_AB inline auto operator*(const VECTOR_A& a, const VECTOR_B& b) { require::equal<NA, NB>; return details::apply<NA, std::multiplies<>>(a, b); }
 
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator==(const VECTOR_A& a, scalar<B> b) { return details::apply<NA, std::equal_to<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator==(scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::equal_to<>>(b, a); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator!=(const VECTOR_A& a, scalar<B> b) { return details::apply<NA, std::not_equal_to<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator!=(scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::not_equal_to<>>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator==(const VECTOR_A& a, Scalar<B> b) { return details::apply<NA, std::equal_to<>>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator==(Scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::equal_to<>>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator!=(const VECTOR_A& a, Scalar<B> b) { return details::apply<NA, std::not_equal_to<>>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator!=(Scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::not_equal_to<>>(b, a); }
 
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator+(const VECTOR_A& a, scalar<B> b) { return details::apply<NA, std::plus<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator+(scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::plus<>>(b, a); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator-(const VECTOR_A& a, scalar<B> b) { return details::apply<NA, std::minus<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator-(scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::minus<>>(b, a); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator*(const VECTOR_A& a, scalar<B> b) { return details::apply<NA, std::multiplies<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator*(scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::multiplies<>>(b, a); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator/(const VECTOR_A& a, scalar<B> b) { return details::apply<NA, std::divides<>>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator+(const VECTOR_A& a, Scalar<B> b) { return details::apply<NA, std::plus<>>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator+(Scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::plus<>>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator-(const VECTOR_A& a, Scalar<B> b) { return details::apply<NA, std::minus<>>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator-(Scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::minus<>>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator*(const VECTOR_A& a, Scalar<B> b) { return details::apply<NA, std::multiplies<>>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator*(Scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::multiplies<>>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator/(const VECTOR_A& a, Scalar<B> b) { return details::apply<NA, std::divides<>>(a, b); }
 
 	namespace details
 	{
 		template <class A, class B, size_t N, int KA, int KB>
 		struct binary_op
 		{
-			static auto dot(const vec<A, N, KA>& a, const vec<B, N, KB>& b)
+			static auto dot(const Vector<A, N, KA>& a, const Vector<B, N, KB>& b)
 			{
 				return sum(a*b);
 			}
@@ -93,11 +93,11 @@ namespace uv
 		template <class A, class B, int KA, int KB>
 		struct binary_op<A, B, 2, KA, KB>
 		{
-			static auto dot(const vec<A, 2, KA>& a, const vec<B, 2, KB>& b)
+			static auto dot(const Vector<A, 2, KA>& a, const Vector<B, 2, KB>& b)
 			{
 				return a[0] * b[0] + a[1] * b[1];
 			}
-			static auto cross(const vec<A, 2, KA>& a, const vec<B, 2, KB>& b)
+			static auto cross(const Vector<A, 2, KA>& a, const Vector<B, 2, KB>& b)
 			{
 				return a[0] * b[1] - a[1] * b[0];
 			}
@@ -105,13 +105,13 @@ namespace uv
 		template <class A, class B, int KA, int KB>
 		struct binary_op<A, B, 3, KA, KB>
 		{
-			static auto dot(const vec<A, 3, KA>& a, const vec<B, 3, KB>& b)
+			static auto dot(const Vector<A, 3, KA>& a, const Vector<B, 3, KB>& b)
 			{
 				return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 			}
-			static auto cross(const vec<A, 3, KA>& a, const vec<B, 3, KB>& b)
+			static auto cross(const Vector<A, 3, KA>& a, const Vector<B, 3, KB>& b)
 			{
-				return vec<decltype(a[0] * b[0] - a[0] * b[0]), 3>
+				return Vector<decltype(a[0] * b[0] - a[0] * b[0]), 3>
 				{
 					a[1] * b[2] - a[2] * b[1],
 						a[2] * b[0] - a[0] * b[2],
@@ -153,17 +153,17 @@ namespace uv
 		auto len = length(a);
 		struct result_t
 		{
-			decltype(a / s(len)) direction;
+			decltype(a / scalar(len)) direction;
 			decltype(len) length;
 		};
-		return result_t{ a / s(len), len };
+		return result_t{ a / scalar(len), len };
 	}
 
 	template <class First, class... Rest>
 	inline auto vector(const First& first, const Rest&... rest)
 	{
 		using namespace details;
-		vec<scalar_of<First>, element_count<First, Rest...>::value> result;
+		Vector<scalar_of<First>, element_count<First, Rest...>::value> result;
 		write_vector(result.data(), first, rest...);
 		return result;
 	}
@@ -171,7 +171,7 @@ namespace uv
 	inline auto vector(Args... args)
 	{
 		using namespace details;
-		vec<T, element_count<Args...>::value> result;
+		Vector<T, element_count<Args...>::value> result;
 		write_vector(result.data(), args...);
 		return result;
 	}
@@ -213,7 +213,7 @@ namespace uv
 	}
 
 	template <class T, size_t N, int K>
-	std::ostream& operator<<(std::ostream& out, const vec<T, N, K>& v)
+	std::ostream& operator<<(std::ostream& out, const Vector<T, N, K>& v)
 	{
 		for (size_t i = 0; i < N; ++i)
 			out << (i == 0 ? "[" : ", ") << v[i];
@@ -223,7 +223,7 @@ namespace uv
 
 #undef TEMPLATE_VECTOR_A
 #undef TEMPLATE_VECTORS_AB
-#undef TEMPLATE_VECTOR_A_SCALAR_B
 #undef TEMPLATE_ANY_VECTOR
+#undef TEMPLATE_VECTOR_A_SCALAR_B
 #undef VECTOR_A
 #undef VECTOR_B

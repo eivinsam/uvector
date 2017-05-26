@@ -11,7 +11,7 @@
 namespace uv
 {
 	template <class T, size_t N, int K>
-	class vec;
+	class Vector;
 
 	namespace type
 	{
@@ -122,11 +122,11 @@ namespace uv
 			auto& operator[](size_t i) const { return self()->begin()[i]; }
 		};
 		template <class T, size_t N, int K>
-		class indexable_from_begin_vec : public indexable_from_begin<vec<T, N, K>, N> { };
+		class indexable_from_begin_vec : public indexable_from_begin<Vector<T, N, K>, N> { };
 	}
 
 	template <class T, size_t N, int K = 1>
-	class vec : public details::indexable_from_begin_vec<T,N,K>
+	class Vector : public details::indexable_from_begin_vec<T,N,K>
 	{
 		T _first;
 	public:
@@ -143,12 +143,12 @@ namespace uv
 		using value_type = T;
 		using scalar_type = T;
 
-		vec() = delete;
-		vec(const vec&) = delete;
+		Vector() = delete;
+		Vector(const Vector&) = delete;
 
 		template <int KB>
-		vec& operator=(const vec<T, N, KB>& other) { for (int i = 0; i < N; ++i) (*this)[i] = other[i]; return *this; }
-		vec& operator=(T value)                    { for (int i = 0; i < N; ++i) (*this)[i] = value;    return *this; }
+		Vector& operator=(const Vector<T, N, KB>& other) { for (int i = 0; i < N; ++i) (*this)[i] = other[i]; return *this; }
+		Vector& operator=(T value)                    { for (int i = 0; i < N; ++i) (*this)[i] = value;    return *this; }
 
 		auto begin()       { return       iterator{ reinterpret_cast<      T*>(this) }; }
 		auto begin() const { return const_iterator{ reinterpret_cast<const T*>(this) }; }
@@ -159,7 +159,7 @@ namespace uv
 	};
 
 	template <class T, size_t N>
-	class vec<T, N, 0> : public details::indexable_from_begin_vec<T, N, 0>
+	class Vector<T, N, 0> : public details::indexable_from_begin_vec<T, N, 0>
 	{
 		T _value;
 	public:
@@ -174,12 +174,12 @@ namespace uv
 		using value_type = T;
 		using scalar_type = T;
 
-		vec() { }
-		vec(const vec&) = default;
-		vec(T value) : _value(value) { }
+		Vector() { }
+		Vector(const Vector&) = default;
+		Vector(T value) : _value(value) { }
 
-		vec& operator=(const vec& other) { _value = other._value; };
-		vec& operator=(T value) { _value = value; }
+		Vector& operator=(const Vector& other) { _value = other._value; };
+		Vector& operator=(T value) { _value = value; }
 
 		auto begin()       { return       iterator{ reinterpret_cast<      T*>(this) }; }
 		auto begin() const { return const_iterator{ reinterpret_cast<const T*>(this) }; }
@@ -190,7 +190,7 @@ namespace uv
 	};
 
 	template <class T, size_t N>
-	class vec<T, N, 1> : public std::array<T, N>
+	class Vector<T, N, 1> : public std::array<T, N>
 	{
 	public:
 		using scalar_type = T;
@@ -198,32 +198,32 @@ namespace uv
 		static_assert(N > 1, "vectors must have at least two dimensions");
 
 		template <class... Args>
-		explicit vec(Args... args) 
+		explicit Vector(Args... args) 
 		{
 			static_assert(sizeof...(Args) == N, "invalid number of elements"); 
 			std::array<T, N>::operator=({ T(args)... });
 		}
 
-		vec() { }
+		Vector() { }
 		template <int KB>
-		vec(const vec<T, N, KB>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = other[i]; }
+		Vector(const Vector<T, N, KB>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = other[i]; }
 
 		template <int K>
-		vec& operator=(const vec<T, N, K>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = other[i]; return *this; }
-		vec& operator=(T value) { for (size_t i = 0; i < N; ++i) (*this)[i] = value; return *this; }
+		Vector& operator=(const Vector<T, N, K>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = other[i]; return *this; }
+		Vector& operator=(T value) { for (size_t i = 0; i < N; ++i) (*this)[i] = value; return *this; }
 
 		explicit operator bool() const { for (size_t i = 0; i < N; ++i) if (!(*this)[i]) return false; return true; }
 	};
 
-	using bool2 = vec<bool, 2>;
-	using bool3 = vec<bool, 3>;
-	using bool4 = vec<bool, 4>;
+	using bool2 = Vector<bool, 2>;
+	using bool3 = Vector<bool, 3>;
+	using bool4 = Vector<bool, 4>;
 
-	using float2 = vec<float, 2>;
-	using float3 = vec<float, 3>;
-	using float4 = vec<float, 4>;
+	using float2 = Vector<float, 2>;
+	using float3 = Vector<float, 3>;
+	using float4 = Vector<float, 4>;
 
-	using double2 = vec<double, 2>;
-	using double3 = vec<double, 3>;
-	using double4 = vec<double, 4>;
+	using double2 = Vector<double, 2>;
+	using double3 = Vector<double, 3>;
+	using double4 = Vector<double, 4>;
 }

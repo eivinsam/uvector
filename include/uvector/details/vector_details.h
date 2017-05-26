@@ -14,7 +14,7 @@ namespace uv
 		template <class T>
 		struct dim_s;
 		template <class T, size_t N, int K>
-		struct dim_s<vec<T, N, K>> { static constexpr size_t value = N; };
+		struct dim_s<Vector<T, N, K>> { static constexpr size_t value = N; };
 		template <class T>
 		static constexpr auto dim = dim_s<std::remove_const_t<std::remove_reference_t<T>>>::value;
 
@@ -109,7 +109,7 @@ namespace uv
 		template <size_t N, class OP, class A, class B>
 		inline auto apply(A&& a, B&& b)
 		{
-			vec<type::of<OP, decltype(a[0]), decltype(b[0])>, N> result;
+			Vector<type::of<OP, decltype(a[0]), decltype(b[0])>, N> result;
 			for (size_t i = 0; i < N; ++i)
 				result[i] = OP{}(a[i], b[i]);
 			return result;
@@ -120,15 +120,15 @@ namespace uv
 		template <class First, class... Rest>
 		struct element_count<First, Rest...> { static constexpr size_t value = 1 + element_count<Rest...>::value; };
 		template <class A, size_t N, int K, class... Rest>
-		struct element_count<vec<A, N, K>, Rest...> { static constexpr size_t value = N + element_count<Rest...>::value; };
+		struct element_count<Vector<A, N, K>, Rest...> { static constexpr size_t value = N + element_count<Rest...>::value; };
 
 		static_assert(element_count<float, float, double>::value == 3);
-		static_assert(element_count<float, vec<float, 3>>::value == 4);
+		static_assert(element_count<float, Vector<float, 3>>::value == 4);
 
 		template <class T>
 		struct scalar_of_s { using type = T; };
 		template <class T, size_t N, int K>
-		struct scalar_of_s<vec<T, N, K>> { using type = T; };
+		struct scalar_of_s<Vector<T, N, K>> { using type = T; };
 
 		template <class T>
 		using scalar_of = typename scalar_of_s<T>::type;
@@ -141,7 +141,7 @@ namespace uv
 			write_vector(dst, rest...);
 		}
 		template <class T, class First, size_t N, int K, class... Rest>
-		void write_vector(T* dst, const vec<First, N, K>& first, const Rest&... rest)
+		void write_vector(T* dst, const Vector<First, N, K>& first, const Rest&... rest)
 		{
 			for (size_t i = 0; i < N; ++i, ++dst)
 				*dst = T(first[i]);

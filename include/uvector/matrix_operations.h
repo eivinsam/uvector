@@ -3,12 +3,12 @@
 #include "details/matrix_details.h"
 
 #define TEMPLATE_MATRIX_A template <class A, size_t RA, size_t CA>
-#define MATRIX_A mat<A, RA, CA>
+#define MATRIX_A Matrix<A, RA, CA>
 
 namespace uv
 {
-	TEMPLATE_MATRIX_A auto& diagonal(      MATRIX_A& m) { return reinterpret_cast<      vec<A, std::min(RA, CA), CA + 1>&>(m); }
-	TEMPLATE_MATRIX_A auto& diagonal(const MATRIX_A& m) { return reinterpret_cast<const vec<A, std::min(RA, CA), CA + 1>&>(m); }
+	TEMPLATE_MATRIX_A auto& diagonal(      MATRIX_A& m) { return reinterpret_cast<      Vector<A, std::min(RA, CA), CA + 1>&>(m); }
+	TEMPLATE_MATRIX_A auto& diagonal(const MATRIX_A& m) { return reinterpret_cast<const Vector<A, std::min(RA, CA), CA + 1>&>(m); }
 
 	template <class V, size_t M>
 	class MatrixView
@@ -33,95 +33,100 @@ namespace uv
 
 
 	template <class T, size_t R, int... K>
-	auto cols(const vec<T, R, K>&... args)
+	auto cols(const Vector<T, R, K>&... args)
 	{
-		mat<T, R, sizeof...(K)> result;
+		Matrix<T, R, sizeof...(K)> result;
 		details::assign_cols(result, args...);
 		return result;
 	}
 	template <class T, size_t C, int... K>
-	auto rows(const vec<T, C, K>&... args)
+	auto rows(const Vector<T, C, K>&... args)
 	{
-		mat<T, sizeof...(K), C> result;
+		Matrix<T, sizeof...(K), C> result;
 		details::assign_rows(result, args...);
 		return result;
 	}
 
+
 	template <class S, class T, size_t R, size_t C>
-	auto operator==(const mat<T, R, C>& m, scalar<S> c)
+	auto operator==(const Matrix<T, R, C>& m, Scalar<S> c)
 	{
-		mat<bool, R, C> result;
+		Matrix<bool, R, C> result;
 		for (size_t i = 0; i < R; ++i)
 			rows(result)[i] = rows(m)[i] == c;
 		return result;
 	}
 	template <class S, class T, size_t R, size_t C>
-	auto operator!=(const mat<T, R, C>& m, scalar<S> c)
+	auto operator!=(const Matrix<T, R, C>& m, Scalar<S> c)
 	{
-		mat<bool, R, C> result;
+		Matrix<bool, R, C> result;
 		for (size_t i = 0; i < R; ++i)
 			rows(result)[i] = rows(m)[i] != c;
 		return result;
 	}
-	template <class S, class T, size_t R, size_t C> bool operator==(scalar<S> c, const mat<T, R, C>& m) { return m == c; }
-	template <class S, class T, size_t R, size_t C> bool operator!=(scalar<S> c, const mat<T, R, C>& m) { return m != c; }
+	template <class S, class T, size_t R, size_t C> bool operator==(Scalar<S> c, const Matrix<T, R, C>& m) { return m == c; }
+	template <class S, class T, size_t R, size_t C> bool operator!=(Scalar<S> c, const Matrix<T, R, C>& m) { return m != c; }
+
 
 	template <class A, class B, size_t RA, size_t RB, size_t CA, size_t CB>
-	auto operator==(const mat<A, RA, CA>& a, const mat<B, RB, CB>& b)
+	auto operator==(const Matrix<A, RA, CA>& a, const Matrix<B, RB, CB>& b)
 	{
 		static_assert(RA == RB, "matrices must have equal number of rows to be comparable");
 		static_assert(CA == CB, "matrices must have equal number of columns to be comparable");
-		mat<bool, RA, CA> result;
+		Matrix<bool, RA, CA> result;
 		for (size_t i = 0; i < RA; ++i)
 			rows(result)[i] = rows(a)[i] == rows(b)[i];
 		return result;
 	}
 	template <class A, class B, size_t RA, size_t RB, size_t CA, size_t CB>
-	auto operator!=(const mat<A, RA, CA>& a, const mat<B, RB, CB>& b)
+	auto operator!=(const Matrix<A, RA, CA>& a, const Matrix<B, RB, CB>& b)
 	{
 		static_assert(RA == RB, "matrices must have equal number of rows to be comparable");
 		static_assert(CA == CB, "matrices must have equal number of columns to be comparable");
-		mat<bool, RA, CA> result;
+		Matrix<bool, RA, CA> result;
 		for (size_t i = 0; i < RA; ++i)
 			rows(result)[i] = rows(a)[i] != rows(b)[i];
 		return result;
 	}
 
+
 	template <class T, size_t R, size_t C>
-	auto transpose(const mat<T, R, C>& m)
+	auto transpose(const Matrix<T, R, C>& m)
 	{
-		mat<T, C, R> result;
+		Matrix<T, C, R> result;
 		for (int i = 0; i < C; ++i)
 			rows(result)[i] = cols(m)[i];
 		return result;
 	}
 
 	template <class A, class B, size_t R, size_t C, size_t N, int K>
-	auto operator*(const mat<A, R, C>& m, const vec<B, N, K>& v)
+	auto operator*(const Matrix<A, R, C>& m, const Vector<B, N, K>& v)
 	{
 		static_assert(C == N, "matrix column count does not match vector length");
-		vec<type::inner_product<A, B>, R> result;
+		Vector<type::inner_product<A, B>, R> result;
 		for (int i = 0; i < R; ++i)
 			result[i] = dot(rows(m)[i], v);
 		return result;
 	}
 	template <class A, class B, size_t R, size_t C, size_t N, int K>
-	auto operator*(const vec<A, N, K>& v, const mat<B, R, C>& m)
+	auto operator*(const Vector<A, N, K>& v, const Matrix<B, R, C>& m)
 	{
 		static_assert(R == N, "matrix row count does not match vector length");
-		vec<type::inner_product<A, B>, C> result;
+		Vector<type::inner_product<A, B>, C> result;
 		for (int i = 0; i < C; ++i)
 			result[i] = dot(cols(m)[i], v);
 		return result;
 	}
 
 	template <class A, class B, size_t RA, size_t CA, size_t RB, size_t CB>
-	auto operator*(const mat<A, RA, CA>& a, const mat<B, RB, CB>& b)
+	auto operator*(const Matrix<A, RA, CA>& a, const Matrix<B, RB, CB>& b)
 	{
 		static_assert(CA == RB, "invalid matrix dimensions for multiplication");
-		mat<type::inner_product<A, B>, RA, CB> result;
+		Matrix<type::inner_product<A, B>, RA, CB> result;
 		for (int i = 0; i < CB; ++i)
 			cols(result)[i] = a * cols(b)[i];
 		return result;
 	}
+
+	//template <class A, class B, size_t RA, size_t CA, size_t K>
 }

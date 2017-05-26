@@ -5,24 +5,24 @@
 namespace uv
 {
 	template <class T, size_t I>
-	class component
+	class Component
 	{
 		T _value;
 	public:
-		component() { }
-		explicit component(T value) : _value(value) { }
+		Component() { }
+		explicit Component(T value) : _value(value) { }
 
 		      T& operator*()       { return _value; }
 		const T& operator*() const { return _value; }
 
-		component operator-() const { return component{ -_value }; }
+		Component operator-() const { return Component{ -_value }; }
 	};
 
 	namespace components
 	{
-		template <class T> auto X(T value) { return component<T, 0>{ value }; }
-		template <class T> auto Y(T value) { return component<T, 1>{ value }; }
-		template <class T> auto Z(T value) { return component<T, 2>{ value }; }
-		template <class T> auto W(T value) { return component<T, 3>{ value }; }
+		template <class T> auto X(T value) { return Component<T, 0>{ value }; }
+		template <class T> auto Y(T value) { return Component<T, 1>{ value }; }
+		template <class T> auto Z(T value) { return Component<T, 2>{ value }; }
+		template <class T> auto W(T value) { return Component<T, 3>{ value }; }
 	}
 }

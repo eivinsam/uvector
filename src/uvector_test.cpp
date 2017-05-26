@@ -81,9 +81,9 @@ void test_arithmetics(const T& a, const T& b, const typename T::value_type c)
 
 	CHECK_EACH(a + b == vector(a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]));
 	CHECK_EACH(a - b == vector(a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]));
-	CHECK_EACH(a * s(c) == vector(a[0] * c, a[1] * c, a[2] * c, a[3] * c));
-	CHECK_EACH(s(c) * a == a * s(c));
-	CHECK_EACH(a / s(c) == vector(a[0] / c, a[1] / c, a[2] / c, a[3] / c));
+	CHECK_EACH(a * scalar(c) == vector(a[0] * c, a[1] * c, a[2] * c, a[3] * c));
+	CHECK_EACH(scalar(c) * a == a * scalar(c));
+	CHECK_EACH(a / scalar(c) == vector(a[0] / c, a[1] / c, a[2] / c, a[3] / c));
 }
 template <class T>
 void test_dot_product(const T& a, const T& b)
@@ -115,10 +115,10 @@ void test_decomposition(const T& a)
 	auto d = decompose(a);
 	CHECK(d.length == sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2] + a[3] * a[3]));
 	CHECK_EACH(d.direction == vector(a[0] / d.length, a[1] / d.length, a[2] / d.length, a[3] / d.length));
-	CHECK_EACH_APPROX(a == d.direction * s(d.length));
+	CHECK_EACH_APPROX(a == d.direction * scalar(d.length));
 }
 template <class T, size_t N>
-void test_components(const vec<T,N>& a, const T c)
+void test_components(const Vector<T,N>& a, const T c)
 {
 	tester::section = "components";
 	
@@ -128,27 +128,27 @@ void test_components(const vec<T,N>& a, const T c)
 	CHECK_EACH(a + Z(c) == vector(a[0], a[1], a[2] + c, a[3]));
 	CHECK_EACH(a + W(c) == vector(a[0], a[1], a[2], a[3] + c));
 
-	CHECK(typeid(vec<T, 2>) == typeid(X(c) + Y(c)));
+	CHECK(typeid(Vector<T, 2>) == typeid(X(c) + Y(c)));
 }
 
 template <class T, size_t N>
-void test_matrix(const vec<T, N>& a)
+void test_matrix(const Vector<T, N>& a)
 {
 	static_assert(N == 4);
 	using U = decltype(T()/T());
 	tester::section = "matrix";
 
-	vec<U, N> d;
+	Vector<U, N> d;
 	for (auto& c : d)
 		c = U(signed_unit_float());
 
-	const mat<U, N, N> A = d;
+	const Matrix<U, N, N> A = d;
 
 	CHECK_EACH(A*a == vector(rows(A)[0][0]*a[0], rows(A)[1][1]*a[1], rows(A)[2][2]*a[2], rows(A)[3][3]*a[3]));
 	CHECK_EACH(A*a == diagonal(A)*a);
-	mat<U, N, N> B = U(0);
+	Matrix<U, N, N> B = U(0);
 
-	CHECK_EACH(rows(B) == s(U(0)));
+	CHECK_EACH(rows(B) == scalar(U(0)));
 
 	for (size_t i = 0; i < N; ++i)
 		rows(B)[i][i] = d[i];
@@ -161,7 +161,7 @@ void test_matrix(const vec<T, N>& a)
 
 	CHECK_EACH(rows(B) == cols(B));
 	
-	CHECK_EACH(rows(A*B) == rows(rows(s(d[0]) * rows(B)[0], s(d[1]) * rows(B)[1], s(d[2]) * rows(B)[2], s(d[3]) * rows(B)[3])));
+	CHECK_EACH(rows(A*B) == rows(rows(scalar(d[0]) * rows(B)[0], scalar(d[1]) * rows(B)[1], scalar(d[2]) * rows(B)[2], scalar(d[3]) * rows(B)[3])));
 }
 
 template <class T>
@@ -173,8 +173,8 @@ void fuzz_vectors()
 		auto a = vector<T>(fuzzy_float(), fuzzy_float(), fuzzy_float(), fuzzy_float());
 		const auto b = vector<T>(fuzzy_float(), fuzzy_float(), fuzzy_float(), fuzzy_float());
 		const T c = T(fuzzy_float());
-		test_selectors<vec<T, 4>>(a);
-		test_selectors<const vec<T, 4>>(a);
+		test_selectors<Vector<T, 4>>(a);
+		test_selectors<const Vector<T, 4>>(a);
 		test_arithmetics(a, b, c);
 		test_dot_product(a, b);
 		test_cross_product(a, b);

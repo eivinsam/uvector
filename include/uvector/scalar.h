@@ -8,19 +8,19 @@ namespace uv
 	static constexpr auto pid = pi<double>;
 
 	template <class T>
-	struct scalar
+	struct Scalar
 	{
 		T value;
 
-		scalar() { }
-		constexpr scalar(T v) : value(v) { }
+		Scalar() { }
+		constexpr Scalar(T v) : value(v) { }
 
-		constexpr scalar& operator=(T v) { value = v; }
+		constexpr Scalar& operator=(T v) { value = v; }
 
 		constexpr T operator*() const { return value; }
 		constexpr T operator[](size_t) const { return value; }
 	};
 
 	template <class T>
-	scalar<T> s(T value) { return { value }; }
+	Scalar<T> scalar(T value) { return { value }; }
 }
