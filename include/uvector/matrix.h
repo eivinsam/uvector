@@ -13,13 +13,6 @@ namespace uv
 	private:
 		static constexpr size_t D = R < C ? R : C; // diagonal length
 		std::array<Row, R> _rows;
-		void _assign_cols() { }
-		template <int KF, int... KR>
-		void _assign_cols(const vec<T, R, KF>& first, const vec<T, R, KR>&... rest)
-		{
-			reinterpret_cast<Column*>(this)[C - 1 - sizeof...(KR)] = first;
-			_assign_cols(rest...);
-		}
 	public:
 		mat() { }
 		mat(T c)
@@ -36,18 +29,6 @@ namespace uv
 					_rows[i][j] = i == j ? diagonal[i] : T(0);
 		}
 
-		template <int... K>
-		void assign_cols(const vec<T, R, K>&... cols)
-		{ 
-			static_assert(sizeof...(K) == C, "invalid number of columns");
-			_assign_cols(cols...);
-		}
-		template <int... K>
-		void assign_rows(const vec<T, C, K>&... rest)
-		{
-			static_assert(sizeof...(K) == R, "invalid number of rows");
-			_rows = { rest... };
-		}
 
 		explicit operator bool() const { for (size_t i = 0; i < R; ++i) if (!row(i)) return false; return true; }
 	};
