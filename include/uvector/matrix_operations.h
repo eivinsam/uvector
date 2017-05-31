@@ -49,24 +49,24 @@ namespace uv
 	}
 
 
-	template <class S, class T, size_t R, size_t C>
-	auto operator==(const Matrix<T, R, C>& m, Scalar<S> c)
+	template <class S, class T, size_t R, size_t C, class = if_scalar_t<S>>
+	auto operator==(const Matrix<T, R, C>& m, S c)
 	{
 		Matrix<bool, R, C> result;
 		for (size_t i = 0; i < R; ++i)
 			rows(result)[i] = rows(m)[i] == c;
 		return result;
 	}
-	template <class S, class T, size_t R, size_t C>
-	auto operator!=(const Matrix<T, R, C>& m, Scalar<S> c)
+	template <class S, class T, size_t R, size_t C, class = if_scalar_t<S>>
+	auto operator!=(const Matrix<T, R, C>& m, S c)
 	{
 		Matrix<bool, R, C> result;
 		for (size_t i = 0; i < R; ++i)
 			rows(result)[i] = rows(m)[i] != c;
 		return result;
 	}
-	template <class S, class T, size_t R, size_t C> bool operator==(Scalar<S> c, const Matrix<T, R, C>& m) { return m == c; }
-	template <class S, class T, size_t R, size_t C> bool operator!=(Scalar<S> c, const Matrix<T, R, C>& m) { return m != c; }
+	template <class S, class T, size_t R, size_t C, class = if_scalar_t<S>> bool operator==(S c, const Matrix<T, R, C>& m) { return m == c; }
+	template <class S, class T, size_t R, size_t C, class = if_scalar_t<S>> bool operator!=(S c, const Matrix<T, R, C>& m) { return m != c; }
 
 
 	template <class A, class B, size_t RA, size_t RB, size_t CA, size_t CB>

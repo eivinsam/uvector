@@ -1,12 +1,11 @@
 #pragma once
 
 #include "details/vector_details.h"
-#include "scalar.h"
 
 #define TEMPLATE_VECTOR_A template <class A, size_t NA, int KA>
 #define TEMPLATE_VECTORS_AB template <class A, class B, size_t NA, size_t NB, int KA, int KB>
 #define TEMPLATE_ANY_VECTOR template <class V, class S = typename std::remove_reference_t<V>::scalar_type>
-#define TEMPLATE_VECTOR_A_SCALAR_B template <class A, class B, size_t NA, int KA>
+#define TEMPLATE_VECTOR_A_SCALAR_B template <class A, class B, size_t NA, int KA, class = if_scalar_t<B>>
 #define VECTOR_A Vector<A, NA, KA> 
 #define VECTOR_B Vector<B, NB, KB>
 
@@ -61,25 +60,25 @@ namespace uv
 	template <size_t N, int K> inline auto operator!(const Vector<bool, N, K>& a) { Vector<bool, N> r; for (size_t i = 0; i < N; ++i) r[i] = !a[i]; return r; }
 
 
-	TEMPLATE_VECTORS_AB	inline auto operator==(const VECTOR_A& a, const VECTOR_B& b) { require::equal<NA, NB>; return details::apply<NA, std::equal_to<>>(a, b); }
-	TEMPLATE_VECTORS_AB	inline auto operator!=(const VECTOR_A& a, const VECTOR_B& b) { require::equal<NA, NB>; return details::apply<NA, std::not_equal_to<>>(a, b); }
+	TEMPLATE_VECTORS_AB	inline auto operator==(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<std::equal_to<>>(a, b); }
+	TEMPLATE_VECTORS_AB	inline auto operator!=(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<std::not_equal_to<>>(a, b); }
 
-	TEMPLATE_VECTORS_AB	inline auto operator+(const VECTOR_A& a, const VECTOR_B& b) { require::equal<NA, NB>; return details::apply<NA, std::plus<>>(a, b); }
-	TEMPLATE_VECTORS_AB inline auto operator-(const VECTOR_A& a, const VECTOR_B& b) { require::equal<NA, NB>; return details::apply<NA, std::minus<>>(a, b); }
-	TEMPLATE_VECTORS_AB inline auto operator*(const VECTOR_A& a, const VECTOR_B& b) { require::equal<NA, NB>; return details::apply<NA, std::multiplies<>>(a, b); }
+	TEMPLATE_VECTORS_AB	inline auto operator+(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<std::plus<>>(a, b); }
+	TEMPLATE_VECTORS_AB inline auto operator-(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<std::minus<>>(a, b); }
+	TEMPLATE_VECTORS_AB inline auto operator*(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<std::multiplies<>>(a, b); }
 
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator==(const VECTOR_A& a, Scalar<B> b) { return details::apply<NA, std::equal_to<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator==(Scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::equal_to<>>(b, a); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator!=(const VECTOR_A& a, Scalar<B> b) { return details::apply<NA, std::not_equal_to<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator!=(Scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::not_equal_to<>>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator==(const VECTOR_A& a, B b) { return details::apply<std::equal_to<>>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator==(B b, const VECTOR_A& a) { return details::apply<std::equal_to<>>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator!=(const VECTOR_A& a, B b) { return details::apply<std::not_equal_to<>>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator!=(B b, const VECTOR_A& a) { return details::apply<std::not_equal_to<>>(b, a); }
 
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator+(const VECTOR_A& a, Scalar<B> b) { return details::apply<NA, std::plus<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator+(Scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::plus<>>(b, a); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator-(const VECTOR_A& a, Scalar<B> b) { return details::apply<NA, std::minus<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator-(Scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::minus<>>(b, a); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator*(const VECTOR_A& a, Scalar<B> b) { return details::apply<NA, std::multiplies<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator*(Scalar<B> b, const VECTOR_A& a) { return details::apply<NA, std::multiplies<>>(b, a); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator/(const VECTOR_A& a, Scalar<B> b) { return details::apply<NA, std::divides<>>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator+(const VECTOR_A& a, B b) { return details::apply<std::plus<>>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator+(B b, const VECTOR_A& a) { return details::apply<std::plus<>>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator-(const VECTOR_A& a, B b) { return details::apply<std::minus<>>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator-(B b, const VECTOR_A& a) { return details::apply<std::minus<>>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator*(const VECTOR_A& a, B b) { return details::apply<std::multiplies<>>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator*(B b, const VECTOR_A& a) { return details::apply<std::multiplies<>>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator/(const VECTOR_A& a, B b) { return details::apply<std::divides<>>(a, b); }
 
 	namespace details
 	{
@@ -148,16 +147,17 @@ namespace uv
 	{
 		return sqrt(square(a));
 	}
-	TEMPLATE_VECTOR_A
-		auto decompose(const VECTOR_A& a) // decomposes vector into direction vector and scalar length
+
+	template <class T>
+	auto decompose(const T& a) // decomposes vector into direction vector and scalar length
 	{
-		auto len = length(a);
+		const auto len = length(a);
 		struct result_t
 		{
-			decltype(a / scalar(len)) direction;
+			decltype(a / len) direction;
 			decltype(len) length;
 		};
-		return result_t{ a / scalar(len), len };
+		return result_t{ a / len, len };
 	}
 
 	template <class First, class... Rest>

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 namespace uv
 {
 	template <class T>
@@ -8,19 +10,12 @@ namespace uv
 	static constexpr auto pid = pi<double>;
 
 	template <class T>
-	struct Scalar
-	{
-		T value;
-
-		Scalar() { }
-		constexpr Scalar(T v) : value(v) { }
-
-		constexpr Scalar& operator=(T v) { value = v; }
-
-		constexpr T operator*() const { return value; }
-		constexpr T operator[](size_t) const { return value; }
-	};
-
+	struct is_scalar : public std::is_arithmetic<T> { };
 	template <class T>
-	Scalar<T> scalar(T value) { return { value }; }
+	static constexpr bool is_scalar_v = is_scalar<T>::value;
+
+	template <class T, class R = void>
+	struct if_scalar : public std::enable_if<is_scalar_v<T>, R> { };
+	template <class T, class R = void>
+	using if_scalar_t = typename if_scalar<T, R>::type;
 }

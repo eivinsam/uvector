@@ -2,6 +2,9 @@
 
 #include "../vector.h"
 
+#define VECTOR_A Vector<A, NA, KA>
+#define VECTOR_B Vector<B, NB, KB>
+
 namespace uv
 {
 	namespace details
@@ -106,14 +109,62 @@ namespace uv
 
 		static_assert(std::is_base_of_v<slicer<2, 0, 1>, selector<0, 1>>);
 
-		template <size_t N, class OP, class A, class B>
-		inline auto apply(A&& a, B&& b)
+
+		template <class T>
+		struct scalar_of_s
 		{
-			Vector<type::of<OP, decltype(a[0]), decltype(b[0])>, N> result;
-			for (size_t i = 0; i < N; ++i)
-				result[i] = OP{}(a[i], b[i]);
-			return result;
-		}
+			static_assert(is_scalar_v<T>, "Expected a scalar or vector type");
+
+			using type = T;
+		};
+		template <class T, size_t N, int K>
+		struct scalar_of_s<Vector<T, N, K>> { using type = T; };
+
+		template <class T>
+		using scalar_of = typename scalar_of_s<T>::type;
+
+		template <class OP, class A, class B>
+		struct applier
+		{
+			static auto apply(A a, B b) { return OP{}(a, b); }
+		};
+		template <class OP, class A, class B, size_t NA, int KA>
+		struct applier<OP, VECTOR_A, B>
+		{
+			static auto apply(const VECTOR_A& a, B b)
+			{
+				Vector<type::of<OP, A, B>, NA> result;
+				for (size_t i = 0; i < NA; ++i)
+					result[i] = OP{}(a[i], b);
+				return result;
+			}
+		};
+		template <class OP, class A, class B, size_t NA, int KA>
+		struct applier<OP, B, VECTOR_A>
+		{
+			static auto apply(B b, const VECTOR_A& a)
+			{
+				Vector<type::of<OP, B, A>, NA> result;
+				for (size_t i = 0; i < NA; ++i)
+					result[i] = OP{}(b, a[i]);
+				return result;
+			}
+		};
+		template <class OP, class A, class B, size_t NA, size_t NB, int KA, int KB>
+		struct applier<OP, VECTOR_A, VECTOR_B>
+		{
+			static auto apply(const VECTOR_A& a, const VECTOR_B& b)
+			{
+				static_assert(NA == NB, "Vector-vector operation requires equal vector lengths");
+				Vector<type::of<OP, A, B>, NA> result;
+				for (size_t i = 0; i < NA; ++i)
+					result[i] = OP{}(a[i], b[i]);
+				return result;
+			}
+		};
+
+		template <class OP, class A, class B>
+		inline auto apply(const A& a, const B& b) { return applier<OP, A, B>::apply(a, b); }
 
 		template <class...>
 		struct element_count { static constexpr size_t value = 0; };
@@ -125,13 +176,6 @@ namespace uv
 		static_assert(element_count<float, float, double>::value == 3);
 		static_assert(element_count<float, Vector<float, 3>>::value == 4);
 
-		template <class T>
-		struct scalar_of_s { using type = T; };
-		template <class T, size_t N, int K>
-		struct scalar_of_s<Vector<T, N, K>> { using type = T; };
-
-		template <class T>
-		using scalar_of = typename scalar_of_s<T>::type;
 
 		inline void write_vector(void*) { }
 		template <class T, class First, class... Rest>
@@ -150,3 +194,5 @@ namespace uv
 
 	}
 }
+#undef VECTOR_A
+#undef VECTOR_B

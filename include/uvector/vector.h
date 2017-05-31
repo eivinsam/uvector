@@ -4,6 +4,8 @@
 #include <iterator>
 #include <ostream>
 
+#include "scalar.h"
+
 #include "../base/gsl.h"
 
 namespace uv
@@ -128,6 +130,7 @@ namespace uv
 	{
 		T _first;
 	public:
+		static_assert(is_scalar_v<T>, "T must be a scalar type");
 		static_assert(N > 1, "vectors must have at least two dimensions");
 
 		using details::indexable_from_begin_vec<T, N, K>::operator[];
@@ -161,6 +164,7 @@ namespace uv
 	{
 		T _value;
 	public:
+		static_assert(is_scalar_v<T>, "T must be a scalar type");
 		static_assert(N > 1, "vectors must have at least two dimensions");
 
 		using size_type = size_t;
@@ -193,6 +197,7 @@ namespace uv
 	public:
 		using scalar_type = T;
 
+		static_assert(is_scalar_v<T>, "T must be a scalar type");
 		static_assert(N > 1, "vectors must have at least two dimensions");
 
 		template <class... Args>
