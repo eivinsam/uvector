@@ -123,12 +123,27 @@ void test_components(const Vector<T,N>& a, const T c)
 	tester::section = "components";
 	
 	using namespace uv::components;
-	CHECK_EACH(a + X(c) == vector(a[0] + c, a[1], a[2], a[3]));
-	CHECK_EACH(a + Y(c) == vector(a[0], a[1] + c, a[2], a[3]));
-	CHECK_EACH(a + Z(c) == vector(a[0], a[1], a[2] + c, a[3]));
-	CHECK_EACH(a + W(c) == vector(a[0], a[1], a[2], a[3] + c));
+	CHECK_EACH(a + X*c == vector(a[0] + c, a[1], a[2], a[3]));
+	CHECK_EACH(a + Y*c == vector(a[0], a[1] + c, a[2], a[3]));
+	CHECK_EACH(a + Z*c == vector(a[0], a[1], a[2] + c, a[3]));
+	CHECK_EACH(a + W*c == vector(a[0], a[1], a[2], a[3] + c));
 
-	CHECK(typeid(Vector<T, 2>) == typeid(X(c) + Y(c)));
+	Matrix<T, N, N> m;
+	T* md = m.data();
+	for (size_t i = 0; i < N; ++i)
+	{
+		CHECK(&rows(m)[0][i] == &(X*m)[i] == md + i + 0*N);
+		CHECK(&rows(m)[1][i] == &(Y*m)[i] == md + i + 1*N);
+		CHECK(&rows(m)[2][i] == &(Z*m)[i] == md + i + 2*N);
+		CHECK(&rows(m)[3][i] == &(W*m)[i] == md + i + 3*N);
+
+		CHECK(&cols(m)[0][i] == &(m*X)[i] == md + i*N + 0);
+		CHECK(&cols(m)[1][i] == &(m*Y)[i] == md + i*N + 1);
+		CHECK(&cols(m)[2][i] == &(m*Z)[i] == md + i*N + 2);
+		CHECK(&cols(m)[3][i] == &(m*W)[i] == md + i*N + 3);
+	}
+
+	CHECK(typeid(Vector<T, 2>) == typeid(X*c + Y*c));
 }
 
 template <class T, size_t N>

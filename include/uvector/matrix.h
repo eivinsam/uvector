@@ -29,6 +29,9 @@ namespace uv
 					_rows[i][j] = i == j ? diagonal[i] : T(0);
 		}
 
+		auto data()       { return reinterpret_cast<T*>(this); }
+		auto data() const { return reinterpret_cast<T*>(this); }
+
 		explicit operator bool() const { for (size_t i = 0; i < R; ++i) if (!row(i)) return false; return true; }
 	};
 

@@ -4,6 +4,14 @@
 
 namespace uv
 {
+	template <class T, size_t I> auto operator*(Axis<I>, T value) { return Component<T, I>(value); }
+	template <class T, size_t I> auto operator*(T value, Axis<I>) { return Component<T, I>(value); }
+
+	template <class T, size_t N, int K, size_t I>
+	auto operator*(const Vector<T, N, K>& v, Axis<I>) { return Component<T, I>(v[I]); }
+	template <class T, size_t N, int K, size_t I>
+	auto operator*(Axis<I>, const Vector<T, N, K>& v) { return Component<T, I>(v[I]); }
+
 	template <class A, class B, size_t N, int K, size_t I>
 	auto operator+(const Vector<A, N, K>& v, Component<B, I> c)
 	{

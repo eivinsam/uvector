@@ -16,11 +16,14 @@ namespace uv
 		Component operator-() const { return Component{ -_value }; }
 	};
 
+	template <size_t I>
+	struct Axis { };
+
 	namespace components
 	{
-		template <class T> auto X(T value) { return Component<T, 0>{ value }; }
-		template <class T> auto Y(T value) { return Component<T, 1>{ value }; }
-		template <class T> auto Z(T value) { return Component<T, 2>{ value }; }
-		template <class T> auto W(T value) { return Component<T, 3>{ value }; }
+		static constexpr Axis<0> X;
+		static constexpr Axis<1> Y;
+		static constexpr Axis<2> Z;
+		static constexpr Axis<3> W;
 	}
 }
