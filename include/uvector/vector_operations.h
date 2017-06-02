@@ -1,6 +1,7 @@
 #pragma once
 
 #include "details/vector_details.h"
+#include "scalar_operations.h"
 
 #define TEMPLATE_VECTOR_A template <class A, size_t NA, int KA>
 #define TEMPLATE_VECTORS_AB template <class A, class B, size_t NA, size_t NB, int KA, int KB>
@@ -18,18 +19,87 @@ namespace uv
 		constexpr details::equal_test<A, B> equal = {};
 	}
 
-	template <class T, size_t N> auto data(Vector<T, N>& v) { return v.begin(); }
+	template <size_t... Indices, class V>
+	auto&& select(V&& source) { return details::selector<Indices...>::on(source); }
+
+	template <class T, size_t I, class = if_scalar_t<T>> auto operator*(Axes<I>, T value) { return Component<T, I>(value); }
+	template <class T, size_t I, class = if_scalar_t<T>> auto operator*(T value, Axes<I>) { return Component<T, I>(value); }
+
+	template <class T, size_t N, int K, size_t I> auto& operator*(      Vector<T, N, K>& v, Axes<I>) { return v[I]; }
+	template <class T, size_t N, int K, size_t I> auto& operator*(const Vector<T, N, K>& v, Axes<I>) { return v[I]; }
+	template <class T, size_t N, int K, size_t I> auto& operator*(Axes<I>,       Vector<T, N, K>& v) { return v[I]; }
+	template <class T, size_t N, int K, size_t I> auto& operator*(Axes<I>, const Vector<T, N, K>& v) { return v[I]; }
+
+	template <class T, size_t N, int K, size_t... I> auto& operator*(      Vector<T, N, K>& v, Axes<I...>) { return select<I...>(v); }
+	template <class T, size_t N, int K, size_t... I> auto& operator*(const Vector<T, N, K>& v, Axes<I...>) { return select<I...>(v); }
+	template <class T, size_t N, int K, size_t... I> auto& operator*(Axes<I...>,       Vector<T, N, K>& v) { return select<I...>(v); }
+	template <class T, size_t N, int K, size_t... I> auto& operator*(Axes<I...>, const Vector<T, N, K>& v) { return select<I...>(v); }
+
+	template <class A, class B, size_t N, int K, size_t I>
+	auto operator+(const Vector<A, N, K>& v, Component<B, I> c)
+	{
+		Vector<type::of<op::add, A, B>, std::max(N, I + 1)> result;
+		for (int i = 0; i < N; ++i)
+			result[i] = v[i];
+		for (int i = N; i <= I; ++i)
+			result[i] = A(0);
+		result[I] += *c;
+		return result;
+	}
+	template <class A, class B, size_t N, int K, size_t I>
+	auto operator+(Component<B, I> c, const Vector<A, N, K>& v) { return v + c; }
+	template <class A, class B, size_t N, int K, size_t I>
+	auto operator-(const Vector<A, N, K>& v, Component<B, I> c)
+	{
+		Vector<type::of<op::sub, A, B>, std::max(N, I + 1)> result;
+		for (int i = 0; i < N; ++i)
+			result[i] = v[i];
+		for (int i = N; i <= I; ++i)
+			result[i] = A(0);
+		result[I] -= *c;
+		return result;
+	}
+	template <class A, class B, size_t N, int K, size_t I>
+	auto operator-(Component<B, I> c, const Vector<A, N, K>& v)
+	{
+		Vector<type::of<op::sub, B, A>, std::max(N, I + 1)> result;
+		for (int i = 0; i < N; ++i)
+			result[i] = -v[i];
+		for (int i = N; i <= I; ++i)
+			result[i] = 0;
+		result[I] += *c;
+		return result;
+	}
+
+	template <class A, class B, size_t IA, size_t IB>
+	inline auto operator+(Component<A, IA> a, Component<B, IB> b) { return details::component_op<A, B, IA, IB>::add(a, b); }
+	template <class A, class B, size_t IA, size_t IB>
+	inline auto operator-(Component<A, IA> a, Component<B, IB> b) { return details::component_op<A, B, IA, IB>::sub(a, b); }
+
+	template <class A, class B, size_t N, int K, size_t I>
+	auto operator*(const Vector<A, N, K>& v, Component<B, I> c)
+	{
+		static_assert(I < N, "invalid vector-component combination");
+		return Component<type::of<op::mul, A, B>, I>{ v[I] * *c };
+	}
+	template <class A, class B, size_t N, int K, size_t I>
+	auto operator*(Component<B, I> c, const Vector<A, N, K>& v) { return v*c; }
+	template <class A, class B, size_t IA, size_t IB>
+	auto operator*(Component<A, IA> a, Component<B, IB> b)
+	{
+		static_assert(IA == IB, "multiplication between different components");
+		return Component<type::of<op::mul, A, B>, IA>{ *a * *b };
+	}
+
+	template <class A, class B, size_t I>
+	bool operator==(Component<A, I> a, B b) { return a.value == b; }
+
+
+	template <class T, size_t N> auto data(      Vector<T, N>& v) { return v.begin(); }
 	template <class T, size_t N> auto data(const Vector<T, N>& v) { return v.begin(); }
 
-	template <size_t Size, int Stride, size_t Offset, class T, size_t N, int K>
-	auto& slice(Vector<T, N, K>& v) { return reinterpret_cast<Vector<T, Size, K*Stride>&>(v[Offset]); }
-	template <size_t Size, int Stride, size_t Offset, class T, size_t N, int K>
-	auto& slice(const Vector<T, N, K>& v) { return reinterpret_cast<const Vector<T, Size, K*Stride>&>(v[Offset]); }
-
-	template <class T, size_t N, int K>
-	Vector<T, (N - 1), K>& rest(Vector<T, N, K>& v) { return slice<(N - 1), K, 1>(v); }
-	template <class T, size_t N, int K>
-	const Vector<T, (N - 1), K>& rest(const Vector<T, N, K>& v) { return slice<(N - 1), K, 1>(v); }
+	TEMPLATE_VECTOR_A auto& rest(      VECTOR_A& v) { return reinterpret_cast<      Vector<A, NA-1, KA>&>(v[1]); }
+	TEMPLATE_VECTOR_A auto& rest(const VECTOR_A& v) { return reinterpret_cast<const Vector<A, NA-1, KA>&>(v[1]); }
 
 	template <int K>
 	bool any(const Vector<bool, 2, K>& v) { return v[0] | v[1]; }
@@ -60,25 +130,25 @@ namespace uv
 	template <size_t N, int K> inline auto operator!(const Vector<bool, N, K>& a) { Vector<bool, N> r; for (size_t i = 0; i < N; ++i) r[i] = !a[i]; return r; }
 
 
-	TEMPLATE_VECTORS_AB	inline auto operator==(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<std::equal_to<>>(a, b); }
-	TEMPLATE_VECTORS_AB	inline auto operator!=(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<std::not_equal_to<>>(a, b); }
+	TEMPLATE_VECTORS_AB	inline auto operator==(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::eq>(a, b); }
+	TEMPLATE_VECTORS_AB	inline auto operator!=(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::ne>(a, b); }
 
-	TEMPLATE_VECTORS_AB	inline auto operator+(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<std::plus<>>(a, b); }
-	TEMPLATE_VECTORS_AB inline auto operator-(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<std::minus<>>(a, b); }
-	TEMPLATE_VECTORS_AB inline auto operator*(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<std::multiplies<>>(a, b); }
+	TEMPLATE_VECTORS_AB	inline auto operator+(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::add>(a, b); }
+	TEMPLATE_VECTORS_AB inline auto operator-(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::sub>(a, b); }
+	TEMPLATE_VECTORS_AB inline auto operator*(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::mul>(a, b); }
 
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator==(const VECTOR_A& a, B b) { return details::apply<std::equal_to<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator==(B b, const VECTOR_A& a) { return details::apply<std::equal_to<>>(b, a); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator!=(const VECTOR_A& a, B b) { return details::apply<std::not_equal_to<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator!=(B b, const VECTOR_A& a) { return details::apply<std::not_equal_to<>>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator==(const VECTOR_A& a, B b) { return details::apply<op::eq>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator==(B b, const VECTOR_A& a) { return details::apply<op::eq>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator!=(const VECTOR_A& a, B b) { return details::apply<op::ne>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator!=(B b, const VECTOR_A& a) { return details::apply<op::ne>(b, a); }
 
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator+(const VECTOR_A& a, B b) { return details::apply<std::plus<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator+(B b, const VECTOR_A& a) { return details::apply<std::plus<>>(b, a); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator-(const VECTOR_A& a, B b) { return details::apply<std::minus<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator-(B b, const VECTOR_A& a) { return details::apply<std::minus<>>(b, a); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator*(const VECTOR_A& a, B b) { return details::apply<std::multiplies<>>(a, b); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator*(B b, const VECTOR_A& a) { return details::apply<std::multiplies<>>(b, a); }
-	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator/(const VECTOR_A& a, B b) { return details::apply<std::divides<>>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator+(const VECTOR_A& a, B b) { return details::apply<op::add>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator+(B b, const VECTOR_A& a) { return details::apply<op::add>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator-(const VECTOR_A& a, B b) { return details::apply<op::sub>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator-(B b, const VECTOR_A& a) { return details::apply<op::sub>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator*(const VECTOR_A& a, B b) { return details::apply<op::mul>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator*(B b, const VECTOR_A& a) { return details::apply<op::mul>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator/(const VECTOR_A& a, B b) { return details::apply<op::div>(a, b); }
 
 	namespace details
 	{
@@ -111,12 +181,10 @@ namespace uv
 			}
 			static auto cross(const Vector<A, 3, KA>& a, const Vector<B, 3, KB>& b)
 			{
-				return Vector<decltype(a[0] * b[0] - a[0] * b[0]), 3>
-				{
-					a[1] * b[2] - a[2] * b[1],
+				return Vector<type::of<op::sub, type::of<op::mul, A, B>>, 3>(
+						a[1] * b[2] - a[2] * b[1],
 						a[2] * b[0] - a[0] * b[2],
-						a[0] * b[1] - a[1] * b[0]
-				};
+						a[0] * b[1] - a[1] * b[0]);
 			}
 		};
 	}
@@ -134,19 +202,9 @@ namespace uv
 		static_assert(NA == 2 || NA == 3, "cross product only defined in 3 or 2 dimensions");
 		return details::binary_op<A, B, NA, KA, KB>::cross(a, b);
 	}
-	TEMPLATE_VECTOR_A
-		auto square(const VECTOR_A& a)
-	{
-		type::inner_product<A> result(0);
-		for (int i = 0; i < NA; ++i)
-			result += a[i] * a[i];
-		return result;
-	}
-	TEMPLATE_VECTOR_A
-		auto length(const VECTOR_A& a)
-	{
-		return sqrt(square(a));
-	}
+
+	TEMPLATE_VECTOR_A auto square(const VECTOR_A& a) { return sum(a*a); }
+	TEMPLATE_VECTOR_A auto length(const VECTOR_A& a) { return sqrt(square(a)); }
 
 	template <class T>
 	auto decompose(const T& a) // decomposes vector into direction vector and scalar length
@@ -177,41 +235,6 @@ namespace uv
 		return result;
 	}
 
-	template <size_t... Indices, class V>
-	auto&& select(V&& source) { return details::selector<Indices...>::on(source); }
-
-	namespace selectors
-	{
-		template <size_t N>  details::greater_test<N, 0> requires_x;
-		template <size_t N>  details::greater_test<N, 1> requires_y;
-		template <size_t N>  details::greater_test<N, 2> requires_z;
-		template <size_t N>  details::greater_test<N, 3> requires_w;
-
-		TEMPLATE_ANY_VECTOR auto& x(V&& v) { return v[0]; }
-		TEMPLATE_ANY_VECTOR auto& y(V&& v) { return v[1]; }
-		TEMPLATE_ANY_VECTOR auto& z(V&& v) { return v[2]; }
-		TEMPLATE_ANY_VECTOR auto& w(V&& v) { return v[3]; }
-
-		TEMPLATE_ANY_VECTOR auto& xy(V&& v) { return select<0,1>(v); }
-		TEMPLATE_ANY_VECTOR auto& yz(V&& v) { return select<1,2>(v); }
-		TEMPLATE_ANY_VECTOR auto& zw(V&& v) { return select<2,3>(v); }
-		TEMPLATE_ANY_VECTOR auto& wx(V&& v) { return select<3,0>(v); }
-
-		TEMPLATE_ANY_VECTOR auto& yx(V&& v) { return select<1,0>(v); }
-		TEMPLATE_ANY_VECTOR auto& zy(V&& v) { return select<2,1>(v); }
-		TEMPLATE_ANY_VECTOR auto& wz(V&& v) { return select<3,2>(v); }
-		TEMPLATE_ANY_VECTOR auto& xw(V&& v) { return select<0,3>(v); }
-
-		TEMPLATE_ANY_VECTOR auto& xz(V&& v) { return select<0,2>(v); }
-		TEMPLATE_ANY_VECTOR auto& yw(V&& v) { return select<1,3>(v); }
-		TEMPLATE_ANY_VECTOR auto& zx(V&& v) { return select<2,0>(v); }
-		TEMPLATE_ANY_VECTOR auto& wy(V&& v) { return select<3,1>(v); }
-
-		TEMPLATE_ANY_VECTOR auto& xyz(V&& v) { return select<0,1,2>(v); }
-		TEMPLATE_ANY_VECTOR auto& yzw(V&& v) { return select<1,2,3>(v); }
-		TEMPLATE_ANY_VECTOR auto& zyx(V&& v) { return select<2,1,0>(v); }
-		TEMPLATE_ANY_VECTOR auto& wzy(V&& v) { return select<3,2,1>(v); }
-	}
 
 	template <class T, size_t N, int K>
 	std::ostream& operator<<(std::ostream& out, const Vector<T, N, K>& v)

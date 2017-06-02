@@ -18,4 +18,15 @@ namespace uv
 	struct if_scalar : public std::enable_if<is_scalar_v<T>, R> { };
 	template <class T, class R = void>
 	using if_scalar_t = typename if_scalar<T, R>::type;
+
+	namespace op
+	{
+		struct add { template <class A, class B> auto operator()(const A& a, const B& b) { return a + b; } };
+		struct sub { template <class A, class B> auto operator()(const A& a, const B& b) { return a - b; } };
+		struct mul { template <class A, class B> auto operator()(const A& a, const B& b) { return a * b; } };
+		struct div { template <class A, class B> auto operator()(const A& a, const B& b) { return a / b; } };
+
+		struct eq { template <class A, class B> auto operator()(const A& a, const B& b) { return a == b; } };
+		struct ne { template <class A, class B> auto operator()(const A& a, const B& b) { return a != b; } };
+	}
 }

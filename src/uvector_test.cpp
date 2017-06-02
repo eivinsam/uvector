@@ -1,19 +1,24 @@
 #include <uvector/vector_operations.h>
-#include <uvector/component_operations.h>
 #include <uvector/matrix_operations.h>
+#include <uvector/quaternion_operations.h>
 #include <units.h>
 
 
 #include <tester_with_macros.h>
 #include <random>
 
+
 using namespace uv;
-using namespace uv::selectors;
+using namespace uv::axes;
 
 static std::mt19937 rng;
 
+template <class T, size_t N, int K>
+struct tester::Magnitude<Vector<T, N, K>> { double operator()(const Vector<T, N, K>& v) const { return double(length(v)); } };
+
 namespace uv
 {
+
 	namespace test
 	{
 		size_t fuzzing_iterations = 1000;
@@ -48,30 +53,30 @@ void test_selectors(T& a)
 	};
 	tester::section = "selectors";
 
-	CHECK(&x(a) == &a[0]);
-	CHECK(&y(a) == &a[1]);
-	CHECK(&z(a) == &a[2]);
-	CHECK(&w(a) == &a[3]);
+	CHECK(&(a*X) == &a[0]);
+	CHECK(&(a*Y) == &a[1]);
+	CHECK(&(a*Z) == &a[2]);
+	CHECK(&(a*W) == &a[3]);
 
-	check_selector(xy(a), a, { 0, 1 });
-	check_selector(yz(a), a, { 1, 2 });
-	check_selector(zw(a), a, { 2, 3 });
-	check_selector(wx(a), a, { 3, 0 });
+	check_selector(a*XY, a, { 0, 1 });
+	check_selector(a*YZ, a, { 1, 2 });
+	check_selector(a*ZW, a, { 2, 3 });
+	check_selector(a*WX, a, { 3, 0 });
 
-	check_selector(yx(a), a, { 1, 0 });
-	check_selector(zy(a), a, { 2, 1 });
-	check_selector(wz(a), a, { 3, 2 });
-	check_selector(xw(a), a, { 0, 3 });
+	check_selector(a*YX, a, { 1, 0 });
+	check_selector(a*ZY, a, { 2, 1 });
+	check_selector(a*WZ, a, { 3, 2 });
+	check_selector(a*XW, a, { 0, 3 });
 
-	check_selector(xz(a), a, { 0, 2 });
-	check_selector(yw(a), a, { 1, 3 });
-	check_selector(zx(a), a, { 2, 0 });
-	check_selector(wy(a), a, { 3, 1 });
+	check_selector(a*XZ, a, { 0, 2 });
+	check_selector(a*YW, a, { 1, 3 });
+	check_selector(a*ZX, a, { 2, 0 });
+	check_selector(a*WY, a, { 3, 1 });
 
-	check_selector(xyz(a), a, { 0, 1, 2 });
-	check_selector(yzw(a), a, { 1, 2, 3 });
-	check_selector(zyx(a), a, { 2, 1, 0 });
-	check_selector(wzy(a), a, { 3, 2, 1 });
+	check_selector(a*(X+Y+Z), a, { 0, 1, 2 });
+	check_selector(a*(Y+Z+W), a, { 1, 2, 3 });
+	check_selector(a*(Z+Y+X), a, { 2, 1, 0 });
+	check_selector(a*(W+Z+Y), a, { 3, 2, 1 });
 }
 
 template <class T>
@@ -91,9 +96,9 @@ void test_dot_product(const T& a, const T& b)
 	tester::section = "dot product";
 	
 	CHECK_APPROX(dot(a, b) == (a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]));
-	CHECK_APPROX(dot(xyz(a), xyz(b)) == (a[0] * b[0] + a[1] * b[1] + a[2] * b[2]));
-	CHECK_APPROX(dot(xy(a), xy(b)) == (a[0] * b[0] + a[1] * b[1]));
-	CHECK_APPROX(dot(zw(a), zw(b)) == (a[2] * b[2] + a[3] * b[3]));
+	CHECK_APPROX(dot(a*XYZ, b*XYZ) == (a[0] * b[0] + a[1] * b[1] + a[2] * b[2]));
+	CHECK_APPROX(dot(a*XY,  b*XY)    == (a[0] * b[0] + a[1] * b[1]));
+	CHECK_APPROX(dot(a*ZW,  b*ZW) == (a[2] * b[2] + a[3] * b[3]));
 
 }
 template <class T>
@@ -101,9 +106,9 @@ void test_cross_product(const T& a, const T& b)
 {
 	tester::section = "cross product";
 
-	CHECK_EACH(cross(xyz(a), xyz(b)) == vector(a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]));
-	CHECK(cross(xy(a), xy(b)) == a[0] * b[1] - a[1] * b[0]);
-	CHECK_EACH(cross(xyz(a), xyz(b)) == vector(cross(yz(a), yz(b)), cross(zx(a), zx(b)), cross(xy(a), xy(b))));
+	CHECK_EACH(cross(a*XYZ, b*XYZ) == vector(a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]));
+	CHECK(cross(a*XY, b*XY) == a[0] * b[1] - a[1] * b[0]);
+	CHECK_EACH(cross(a*XYZ, b*XYZ) == vector(cross(a*YZ, b*YZ), cross(a*ZX, b*ZX), cross(a*XY, b*XY)));
 }
 template <class T>
 void test_decomposition(const T& a)
@@ -113,7 +118,7 @@ void test_decomposition(const T& a)
 	tester::section = "decomposition";
 
 	auto d = decompose(a);
-	CHECK(d.length == sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2] + a[3] * a[3]));
+	CHECK_APPROX(d.length == sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2] + a[3] * a[3]));
 	CHECK_EACH(d.direction == vector(a[0] / d.length, a[1] / d.length, a[2] / d.length, a[3] / d.length));
 	CHECK_EACH_APPROX(a == d.direction * d.length);
 }
@@ -122,7 +127,6 @@ void test_components(const Vector<T,N>& a, const T c)
 {
 	tester::section = "components";
 	
-	using namespace uv::components;
 	CHECK_EACH(a + X*c == vector(a[0] + c, a[1], a[2], a[3]));
 	CHECK_EACH(a + Y*c == vector(a[0], a[1] + c, a[2], a[3]));
 	CHECK_EACH(a + Z*c == vector(a[0], a[1], a[2] + c, a[3]));
@@ -179,7 +183,23 @@ void test_matrix(const Vector<T, N>& a)
 	CHECK_EACH(rows(A*B) == rows(rows(d[0] * rows(B)[0], d[1] * rows(B)[1], d[2] * rows(B)[2], d[3] * rows(B)[3])));
 }
 
-template <class T>
+template <class Angle, class T, size_t N>
+void test_quaternion(const Vector<T, N>& v)
+{
+	tester::section = "quaternion";
+	using namespace axes;
+	using U = decltype(T() / T());
+	auto a = Angle(1);
+	auto R = rotate<U>(a, Z);
+
+	CHECK_EACH_APPROX(R*X == vector<U>(cos(a), sin(a), 0));
+	CHECK_EACH_APPROX(R*Y == vector<U>(-sin(a), cos(a), 0));
+	CHECK_EACH(R*Z == vector<U>(0, 0, 1));
+
+	CHECK_APPROX(rotate(a, v*XYZ) * (v*XYZ) == v*XYZ);
+}
+
+template <class Angle, class T>
 void fuzz_vectors()
 {
 	for (auto i : tester::Repeat(test::fuzzing_iterations))
@@ -196,6 +216,7 @@ void fuzz_vectors()
 		test_decomposition(a);
 		test_components(a, c);
 		test_matrix(a);
+		test_quaternion<Angle>(a);
 	}
 }
 
@@ -223,7 +244,7 @@ TEST_CASE("uvector")
 	}
 
 	SUBCASE("float")
-		fuzz_vectors<float>();
+		fuzz_vectors<float, float>();
 	SUBCASE("unit::Distance<float>")
-		fuzz_vectors<units::Distance<float>>();
+		fuzz_vectors<units::Angle<float>, units::Distance<float>>();
 };

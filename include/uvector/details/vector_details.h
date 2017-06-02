@@ -46,10 +46,6 @@ namespace uv
 			static constexpr int delta = Second - First;
 		};
 
-		template <size_t N>
-		inline void assert_all_less() { }
-		template <size_t N, size_t First, size_t... Rest>
-		inline void assert_all_less() { static_assert(First < N, "Indices must be less than N"); assert_all_less<N, Rest...>(); }
 
 		template <class T, class = void>
 		struct is_vector_s : public std::false_type { };
@@ -65,49 +61,12 @@ namespace uv
 		template <class T>
 		inline void assert_second_vector() { static_assert(is_vector<T>, "second argument must be a vector"); }
 
-		template <class V, size_t... Indices>
-		inline void assert_all_less() { assert_vector<V>(); assert_all_less<dim<V>, Indices...>(); }
 
 		template <typename... Rest>
 		inline constexpr int delta(size_t first, size_t second, Rest...) { return int(second) - int(first); }
 
 
 
-		template <size_t N, size_t I0, int K>
-		struct slicer
-		{
-			static constexpr int Ifirst = int(I0);
-			static constexpr int Ilast = Ifirst + K*(int(N) - 1);
-			static constexpr int Imin = std::min(Ifirst, Ilast);
-			static constexpr int Imax = std::max(Ifirst, Ilast);
-			static_assert(Imin >= 0, "Lowest index must be greater or equal to zero");
-
-			template <class V>
-			static auto& on(V&& v)
-			{
-				assert_vector<V>();
-				static_assert(Imax < dim<V>, "Highest index must be less than vector dimension");
-				return uv::slice<N, K, I0>(v);
-			}
-		};
-
-		template <size_t... Indices>
-		struct copy_selector
-		{
-			template <class V>
-			static auto on(V&& v)
-			{
-				assert_all_less<V, Indices...>();
-				return vector(v[Indices]...);
-			}
-		};
-
-		template <int... Indices>
-		struct selector : public std::conditional_t<is_linear<Indices...>,
-			slicer<sizeof...(Indices), linear_sequence<Indices...>::first, linear_sequence<Indices...>::delta>,
-			copy_selector<Indices...>> { };
-
-		static_assert(std::is_base_of_v<slicer<2, 0, 1>, selector<0, 1>>);
 
 
 		template <class T>
@@ -191,6 +150,97 @@ namespace uv
 				*dst = T(first[i]);
 			write_vector(dst, rest...);
 		}
+
+		template <class A, class B, size_t IA, size_t IB>
+		struct component_op
+		{
+			static auto add(Component<A, IA> a, Component<B, IB> b)
+			{
+				using T = decltype(*a + *b);
+				Vector<T, std::max(IA, IB) + 1> result;
+				for (size_t i = 0; i < result.size(); ++i)
+					switch (i)
+					{
+					case IA: result[i] = *a;
+					case IB: result[i] = *b;
+					default: result[i] = T(0);
+					}
+				return result;
+			}
+			static auto sub(Component<A, IA> a, Component<B, IB> b)
+			{
+				using T = decltype(*a - *b);
+				Vector<T, std::max(IA, IB) + 1> result;
+				for (size_t i = 0; i < result.size(); ++i)
+					switch (i)
+					{
+					case IA: result[i] = *a;
+					case IB: result[i] = -*b;
+					default: result[i] = T(0);
+					}
+				return result;
+			}
+		};
+		template <class A, class B, size_t I>
+		struct component_op<A, B, I, I>
+		{
+			static auto add(Component<A, I> a, Component<B, I> b)
+			{
+				return Component<decltype(*a + *b), I>{ *a + *b };
+			}
+			static auto sub(Component<A, I> a, Component<B, I> b)
+			{
+				return Component<decltype(*a - *b), I>{ *a - *b };
+			}
+		};
+
+		template <size_t N>
+		inline void assert_all_less() { }
+		template <size_t N, size_t First, size_t... Rest>
+		inline void assert_all_less() { static_assert(First < N, "Indices must be less than N"); assert_all_less<N, Rest...>(); }
+
+		template <size_t N, size_t I0, int K>
+		struct slicer
+		{
+			static constexpr int Ifirst = int(I0);
+			static constexpr int Ilast = Ifirst + K*(int(N) - 1);
+			static constexpr int Imin = std::min(Ifirst, Ilast);
+			static constexpr int Imax = std::max(Ifirst, Ilast);
+			static_assert(Imin >= 0, "Lowest index must be greater or equal to zero");
+
+			template <class A, size_t AN, int AK>
+			static auto& on(Vector<A, AN, AK>& v)
+			{
+				static_assert(Imax < AN, "Highest index must be less than vector dimension");
+				return reinterpret_cast<Vector<A, N, K*AK>&>(v[I0]);
+			}
+			template <class A, size_t AN, int AK>
+			static auto& on(const Vector<A, AN, AK>& v)
+			{
+				static_assert(Imax < AN, "Highest index must be less than vector dimension");
+				return reinterpret_cast<const Vector<A, N, K*AK>&>(v[I0]);
+			}
+		};
+
+		template <size_t... Indices>
+		struct copy_selector
+		{
+			template <class V>
+			static auto on(V&& v)
+			{
+				assert_all_less<dim<V>, Indices...>();
+				return vector(v[Indices]...);
+			}
+		};
+
+		template <int... Indices>
+		struct selector : public std::conditional_t<is_linear<Indices...>,
+			slicer<sizeof...(Indices), linear_sequence<Indices...>::first, linear_sequence<Indices...>::delta>,
+			copy_selector<Indices...>> { };
+
+		static_assert(std::is_base_of_v<slicer<2, 0, 1>, selector<0, 1>>);
+
+
 
 	}
 }

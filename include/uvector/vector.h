@@ -13,18 +13,59 @@ namespace uv
 	template <class T, size_t N, int K>
 	class Vector;
 
+	template <size_t... I>
+	struct Axes { };
+
+	template <size_t... IA, size_t... IB>
+	constexpr Axes<IA..., IB...> operator+(Axes<IA...>, Axes<IB...>) { return {}; }
+
+	namespace axes
+	{
+		static constexpr Axes<0> X;
+		static constexpr Axes<1> Y;
+		static constexpr Axes<2> Z;
+		static constexpr Axes<3> W;
+
+		static constexpr auto XY = X + Y;
+		static constexpr auto YZ = Y + Z;
+		static constexpr auto ZW = Z + W;
+		static constexpr auto WX = W + X;
+
+		static constexpr auto XZ = X + Z;
+		static constexpr auto YW = Y + W;
+		static constexpr auto ZX = Z + X;
+		static constexpr auto WY = W + Y;
+
+		static constexpr auto XW = X + W;
+		static constexpr auto YX = Y + X;
+		static constexpr auto ZY = Z + Y;
+		static constexpr auto WZ = W + Z;
+
+		static constexpr auto XYZ = X + Y + Z;
+	}
+
+	template <class T, size_t I>
+	class Component
+	{
+		T _value;
+	public:
+		Component() { }
+		Component(T value) : _value(value) { }
+
+		T& operator*() { return _value; }
+		const T& operator*() const { return _value; }
+
+		Component operator-() const { return Component{ -_value }; }
+	};
+
+
 	namespace type
 	{
 		template <class OP, class A, class B = A> using of = decltype(OP{}(std::declval<A>(), std::declval<B>()));
-		template <class A, class B = A> using add = decltype(std::declval<A>() + std::declval<B>());
-		template <class A, class B = A> using sub = decltype(std::declval<A>() - std::declval<B>());
-		template <class A, class B = A> using mul = decltype(std::declval<A>() * std::declval<B>());
-		template <class A, class B = A> using div = decltype(std::declval<A>() / std::declval<B>());
 
 		template <class A, class B = A>
-		using inner_product = add<mul<A, B>>;
+		using inner_product = of<op::add, of<op::mul, A, B>>;
 	}
-
 	
 	namespace details
 	{
