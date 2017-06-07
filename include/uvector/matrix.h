@@ -15,24 +15,30 @@ namespace uv
 		std::array<Row, R> _rows;
 	public:
 		Matrix() { }
-		Matrix(T c)
-		{
+		Matrix(T diagonal) { *this = diagonal; }
+		template <int K>
+		Matrix(const Vector<T, D, K>& diagonal) { *this = diagonal; }
+
+		Matrix& operator=(T diagonal)
+		{ 
 			for (size_t i = 0; i < R; ++i)
 				for (size_t j = 0; j < C; ++j)
-					_rows[i][j] = i == j ? c : T(0);
+					_rows[i][j] = i == j ? diagonal : T(0);
+			return *this;
 		}
 		template <int K>
-		Matrix(const Vector<T, D, K>& diagonal)
+		Matrix& operator=(const Vector<T, D, K>& diagonal)
 		{
 			for (size_t i = 0; i < R; ++i)
 				for (size_t j = 0; j < C; ++j)
 					_rows[i][j] = i == j ? diagonal[i] : T(0);
+			return *this;
 		}
 
-		auto data()       { return reinterpret_cast<T*>(this); }
-		auto data() const { return reinterpret_cast<T*>(this); }
+		auto data()       { return reinterpret_cast<      T*>(this); }
+		auto data() const { return reinterpret_cast<const T*>(this); }
 
-		explicit operator bool() const { for (size_t i = 0; i < R; ++i) if (!row(i)) return false; return true; }
+		explicit operator bool() const { for (size_t i = 0; i < R; ++i) if (!_rows[i]) return false; return true; }
 	};
 
 
