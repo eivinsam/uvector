@@ -41,6 +41,29 @@ namespace uv
 		explicit operator bool() const { for (size_t i = 0; i < R; ++i) if (!_rows[i]) return false; return true; }
 	};
 
+	template <class T, size_t R, size_t C> auto& diagonal(      Matrix<T, R, C>& m) { return reinterpret_cast<      Vector<T, std::min(R, C), C+1>&>(m); }
+	template <class T, size_t R, size_t C> auto& diagonal(const Matrix<T, R, C>& m) { return reinterpret_cast<const Vector<T, std::min(R, C), C+1>&>(m); }
+
+	template <class V, size_t M>
+	class MatrixView
+	{
+		V _data[M];
+	public:
+		V* begin() { return _data; }
+		const V* begin() const { return _data; }
+		V* end() { return _data + M; }
+		const V* end() const { return _data + M; }
+
+		constexpr size_t size() const { return M; }
+
+		auto& operator[](size_t i) { return _data[i]; }
+		auto& operator[](size_t i) const { return _data[i]; }
+	};
+
+	template <class T, size_t R, size_t C> auto& rows(      Matrix<T, R, C>& a) { return reinterpret_cast<      MatrixView<typename Matrix<T, R, C>::Row, R>&>(a); }
+	template <class T, size_t R, size_t C> auto& rows(const Matrix<T, R, C>& a) { return reinterpret_cast<const MatrixView<typename Matrix<T, R, C>::Row, R>&>(a); }
+	template <class T, size_t R, size_t C> auto& cols(      Matrix<T, R, C>& a) { return reinterpret_cast<      MatrixView<typename Matrix<T, R, C>::Column, C>&>(a); }
+	template <class T, size_t R, size_t C> auto& cols(const Matrix<T, R, C>& a) { return reinterpret_cast<const MatrixView<typename Matrix<T, R, C>::Column, C>&>(a); }
 
 	using float22 = Matrix<float, 2, 2>;
 	using float33 = Matrix<float, 3, 3>;

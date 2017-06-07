@@ -3,36 +3,8 @@
 #include "details/matrix_details.h"
 #include "scalar.h"
 
-#define TEMPLATE_MATRIX_A template <class A, size_t RA, size_t CA>
-#define MATRIX_A Matrix<A, RA, CA>
-
 namespace uv
 {
-	TEMPLATE_MATRIX_A auto& diagonal(      MATRIX_A& m) { return reinterpret_cast<      Vector<A, std::min(RA, CA), CA + 1>&>(m); }
-	TEMPLATE_MATRIX_A auto& diagonal(const MATRIX_A& m) { return reinterpret_cast<const Vector<A, std::min(RA, CA), CA + 1>&>(m); }
-
-	template <class V, size_t M>
-	class MatrixView
-	{
-		V _data[M];
-	public:
-		      V* begin()       { return _data; }
-		const V* begin() const { return _data; }
-		      V* end()       { return _data + M; }
-		const V* end() const { return _data + M; }
-
-		constexpr size_t size() const { return M; }
-
-		auto& operator[](size_t i)       { return _data[i]; }
-		auto& operator[](size_t i) const { return _data[i]; }
-	};
-
-	TEMPLATE_MATRIX_A auto& rows(      MATRIX_A& a) { return reinterpret_cast<      MatrixView<typename MATRIX_A::Row,    RA>&>(a); }
-	TEMPLATE_MATRIX_A auto& rows(const MATRIX_A& a) { return reinterpret_cast<const MatrixView<typename MATRIX_A::Row,    RA>&>(a); }
-	TEMPLATE_MATRIX_A auto& cols(      MATRIX_A& a) { return reinterpret_cast<      MatrixView<typename MATRIX_A::Column, CA>&>(a); }
-	TEMPLATE_MATRIX_A auto& cols(const MATRIX_A& a) { return reinterpret_cast<const MatrixView<typename MATRIX_A::Column, CA>&>(a); }
-
-
 	template <class T, size_t R, int... K>
 	auto cols(const Vector<T, R, K>&... args)
 	{
@@ -47,7 +19,6 @@ namespace uv
 		details::assign_rows(result, args...);
 		return result;
 	}
-
 
 	template <class S, class T, size_t R, size_t C, class = if_scalar_t<S>>
 	auto operator==(const Matrix<T, R, C>& m, S c)
@@ -90,7 +61,6 @@ namespace uv
 		return result;
 	}
 
-
 	template <class T, size_t R, size_t C>
 	auto transpose(const Matrix<T, R, C>& m)
 	{
@@ -99,6 +69,9 @@ namespace uv
 			rows(result)[i] = cols(m)[i];
 		return result;
 	}
+
+	template <class T, size_t R, size_t C> auto    det(const Matrix<T, R, C>& m) { return details::square_op<R, C>::det(m); }
+	template <class T, size_t R, size_t C> auto invert(const Matrix<T, R, C>& m) { return details::square_op<R, C>::inv(m); }
 
 	template <class A, class B, size_t R, size_t C, size_t N, int K>
 	auto operator*(const Matrix<A, R, C>& m, const Vector<B, N, K>& v)
