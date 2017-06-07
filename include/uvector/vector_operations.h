@@ -206,18 +206,6 @@ namespace uv
 	TEMPLATE_VECTOR_A auto square(const VECTOR_A& a) { return sum(a*a); }
 	TEMPLATE_VECTOR_A auto length(const VECTOR_A& a) { return sqrt(square(a)); }
 
-	template <class T>
-	auto decompose(const T& a) // decomposes vector into direction vector and scalar length
-	{
-		const auto len = length(a);
-		struct result_t
-		{
-			decltype(a / len) direction;
-			decltype(len) length;
-		};
-		return result_t{ a / len, len };
-	}
-
 	template <class First, class... Rest>
 	inline auto vector(const First& first, const Rest&... rest)
 	{
