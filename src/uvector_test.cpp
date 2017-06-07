@@ -154,20 +154,19 @@ template <class T, size_t N>
 void test_matrix(const Vector<T, N>& a)
 {
 	static_assert(N == 4);
-	using U = decltype(T()/T());
 	tester::section = "matrix";
 
-	Vector<U, N> d;
+	Vector<float, N> d;
 	for (auto& c : d)
-		c = U(signed_unit_float());
+		c = signed_unit_float();
 
-	const Matrix<U, N, N> A = d;
+	const Matrix<float, N, N> A = d;
 
 	CHECK_EACH(A*a == vector(rows(A)[0][0]*a[0], rows(A)[1][1]*a[1], rows(A)[2][2]*a[2], rows(A)[3][3]*a[3]));
 	CHECK_EACH(A*a == diagonal(A)*a);
-	Matrix<U, N, N> B = U(0);
+	Matrix<float, N, N> B = 0;
 
-	CHECK_EACH(rows(B) == U(0));
+	CHECK_EACH(rows(B) == 0);
 
 	for (size_t i = 0; i < N; ++i)
 		rows(B)[i][i] = d[i];
@@ -176,30 +175,29 @@ void test_matrix(const Vector<T, N>& a)
 
 	for (size_t i = 0; i < N; ++i)
 		for (size_t j = 0; j < i; ++j)
-			rows(B)[i][j] = rows(B)[j][i] = U(signed_unit_float());
+			rows(B)[i][j] = rows(B)[j][i] = signed_unit_float();
 
 	CHECK_EACH(rows(B) == cols(B));
 	
 	CHECK_EACH(rows(A*B) == rows(rows(d[0] * rows(B)[0], d[1] * rows(B)[1], d[2] * rows(B)[2], d[3] * rows(B)[3])));
 }
 
-template <class Angle, class T, size_t N>
+template <class T, size_t N>
 void test_quaternion(const Vector<T, N>& v)
 {
 	tester::section = "quaternion";
 	using namespace axes;
-	using U = decltype(T() / T());
-	auto a = Angle(1);
-	auto R = rotate<U>(a, Z);
+	auto a = 1.0f;
+	auto R = rotate<float>(a, Z);
 
-	CHECK_EACH_APPROX(R*X == vector<U>(cos(a), sin(a), 0));
-	CHECK_EACH_APPROX(R*Y == vector<U>(-sin(a), cos(a), 0));
-	CHECK_EACH(R*Z == vector<U>(0, 0, 1));
+	CHECK_EACH_APPROX(R*X == vector<float>(cos(a), sin(a), 0));
+	CHECK_EACH_APPROX(R*Y == vector<float>(-sin(a), cos(a), 0));
+	CHECK_EACH(R*Z == vector<float>(0, 0, 1));
 
 	CHECK_APPROX(rotate(a, v*XYZ) * (v*XYZ) == v*XYZ);
 }
 
-template <class Angle, class T>
+template <class T>
 void fuzz_vectors()
 {
 	for (auto i : tester::Repeat(test::fuzzing_iterations))
@@ -216,7 +214,7 @@ void fuzz_vectors()
 		test_decomposition(a);
 		test_components(a, c);
 		test_matrix(a);
-		test_quaternion<Angle>(a);
+		test_quaternion(a);
 	}
 }
 
@@ -237,14 +235,14 @@ TEST_CASE("uvector")
 	{
 		for (int x = 0; x < 16; ++x)
 		{
-			const auto boolv = vector((x & 1) != 0, (x & 2) != 0, (x & 4) != 0, (x & 8) != 0);
+			const auto boolv = vector(x & 1, x & 2, x & 4, x & 8) != 0;
 			CHECK(all(boolv) == (x == 0b1111));
 			CHECK(any(boolv) == (x != 0));
 		}
 	}
 
 	SUBCASE("float")
-		fuzz_vectors<float, float>();
+		fuzz_vectors<float>();
 	SUBCASE("unit::Distance<float>")
-		fuzz_vectors<units::Angle<float>, units::Distance<float>>();
+		fuzz_vectors<units::Distance<float>>();
 };

@@ -65,6 +65,9 @@ namespace uv
 
 		template <class A, class B = A>
 		using inner_product = of<op::add, of<op::mul, A, B>>;
+
+		template <class T>
+		using identity = of<op::div, T, T>;
 	}
 	
 	namespace details
