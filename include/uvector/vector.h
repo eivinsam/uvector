@@ -52,10 +52,10 @@ namespace uv
 		T _value;
 	public:
 		Component() { }
-		Component(T value) : _value(value) { }
+		constexpr Component(T value) : _value(value) { }
 
-		T& operator*() { return _value; }
-		const T& operator*() const { return _value; }
+		constexpr       T& operator*()       { return _value; }
+		constexpr const T& operator*() const { return _value; }
 
 		Component operator-() const { return Component{ -_value }; }
 	};
