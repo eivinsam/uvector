@@ -36,20 +36,20 @@ namespace uv
 			static_assert(R == C, "Matrix must be square");
 
 			template <class T>
-			auto det(const Matrix<T, R, C>& m);
+			static auto det(const Matrix<T, R, C>& m);
 			template <class T>
-			auto inv(const Matrix<T, R, C>& m);
+			static auto inv(const Matrix<T, R, C>& m);
 		};
 		template <>
 		struct square_op<2, 2>
 		{
 			template <class T>
-			auto det(const Matrix<T, 2, 2>& m)
+			static auto det(const Matrix<T, 2, 2>& m)
 			{
 				return cross(cols(m)[0], cols(m)[1]);
 			}
 			template <class T>
-			auto inv(const Matrix<T, 2, 2>& m)
+			static auto inv(const Matrix<T, 2, 2>& m)
 			{
 				return rows(
 					vector(rows(m)[1][1], rows(m)[1][0]),
@@ -61,12 +61,12 @@ namespace uv
 		struct square_op<3, 3>
 		{
 			template <class T>
-			auto det(const Matrix<T, 3, 3>& m)
+			static auto det(const Matrix<T, 3, 3>& m)
 			{
 				return dot(rows(m)[0], cross(rows(m)[1], rows(m)[2]));
 			}
 			template <class T>
-			auto inv(const Matrix<T, 3, 3>& m)
+			static auto inv(const Matrix<T, 3, 3>& m)
 			{
 				auto& mc0 = cols(m)[0];
 				auto& mc1 = cols(m)[1];
