@@ -219,14 +219,6 @@ void fuzz_vectors()
 }
 
 
-namespace units_vector_test
-{
-	using Distancef = units::Distance<float>;
-	using Areaf = units::Area<float>;
-	static_assert(std::is_same_v<Distancef, decltype(vector<Distancef>(1, 2) + vector<Distancef>(3, 4))::value_type>, "vector addition should have the same output type");
-	static_assert(std::is_same_v<Areaf, decltype(dot(vector<Distancef>(1, 2), vector<Distancef>(3, 4)))>, "vector dot product should produce squared output type");
-}
-
 TEST_CASE("uvector")
 {
 	tester::presicion = tester::default_float_presicion;
