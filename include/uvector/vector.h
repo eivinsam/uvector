@@ -61,17 +61,6 @@ namespace uv
 	};
 
 
-	namespace type
-	{
-		template <class OP, class A, class B = A> using of = decltype(OP{}(std::declval<A>(), std::declval<B>()));
-
-		template <class A, class B = A>
-		using inner_product = of<op::add, of<op::mul, A, B>>;
-
-		template <class T>
-		using identity = of<op::div, T, T>;
-	}
-	
 	namespace details
 	{
 		template <class T, int K>

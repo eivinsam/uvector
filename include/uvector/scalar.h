@@ -36,4 +36,15 @@ namespace uv
 		struct min { template <class A, class B> auto operator()(const A& a, const B& b) { return a <= b ? a : b; } };
 		struct max { template <class A, class B> auto operator()(const A& a, const B& b) { return a >= b ? a : b; } };
 	}
+
+	namespace type
+	{
+		template <class OP, class A, class B = A> using of = decltype(OP{}(std::declval<A>(), std::declval<B>()));
+
+		template <class A, class B = A>
+		using inner_product = of<op::add, of<op::mul, A, B>>;
+
+		template <class T>
+		using identity = of<op::div, T, T>;
+	}
 }
