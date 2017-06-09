@@ -212,18 +212,18 @@ namespace uv
 		using scalar_type = T;
 
 		Vector() { }
-		Vector(const Vector&) = default;
-		Vector(T value) : _value(value) { }
+		constexpr Vector(const Vector&) = default;
+		constexpr Vector(T value) : _value(value) { }
 
-		Vector& operator=(const Vector& other) { _value = other._value; };
-		Vector& operator=(T value) { _value = value; }
+		constexpr Vector& operator=(const Vector& other) = default;
+		constexpr Vector& operator=(T value) { _value = value; }
 
 		auto begin()       { return       iterator{ reinterpret_cast<      T*>(this) }; }
 		auto begin() const { return const_iterator{ reinterpret_cast<const T*>(this) }; }
 
 		constexpr size_t size() const { return N; }
 
-		explicit operator bool() const { return bool(_value); }
+		explicit constexpr operator bool() const { return bool(_value); }
 	};
 
 	template <class T, size_t N>
