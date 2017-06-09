@@ -241,7 +241,12 @@ namespace uv
 		static_assert(std::is_base_of_v<slicer<2, 0, 1>, selector<0, 1>>);
 
 
-
+		template <size_t...>
+		struct index_s;
+		template <>
+		struct index_s<> { static constexpr size_t value = 0; };
+		template <size_t I0, size_t... I>
+		struct index_s<I0, I...> { static constexpr size_t value = (1 << I0) | index_s<I...>::value; };
 	}
 }
 #undef VECTOR_A

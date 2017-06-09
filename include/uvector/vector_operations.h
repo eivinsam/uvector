@@ -206,6 +206,18 @@ namespace uv
 	TEMPLATE_VECTOR_A auto square(const VECTOR_A& a) { return sum(a*a); }
 	TEMPLATE_VECTOR_A auto length(const VECTOR_A& a) { return sqrt(square(a)); }
 
+	template <size_t N, int K>
+	constexpr size_t index(const Vector<bool, N, K>& v)
+	{
+		size_t result = 0;
+		for (size_t i = 0; i < N; ++i)
+			result |= (v[i] << N);
+		return result;
+	}
+	static constexpr size_t index() { return 0; };
+	template <size_t... I>
+	constexpr size_t index(Axes<I...>) { return details::index_s<I...>::value; }
+
 	template <class First, class... Rest>
 	inline auto vector(const First& first, const Rest&... rest)
 	{

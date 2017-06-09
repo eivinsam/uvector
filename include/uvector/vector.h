@@ -21,6 +21,8 @@ namespace uv
 
 	namespace axes
 	{
+		static constexpr Axes<> Nought;
+
 		static constexpr Axes<0> X;
 		static constexpr Axes<1> Y;
 		static constexpr Axes<2> Z;
