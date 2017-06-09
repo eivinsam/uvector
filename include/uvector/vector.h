@@ -247,7 +247,7 @@ namespace uv
 		static_assert(N > 1, "vectors must have at least two dimensions");
 
 		template <class... Args>
-		explicit Vector(Args... args) 
+		Vector(Args... args) 
 		{
 			static_assert(sizeof...(Args) == N, "invalid number of elements"); 
 			std::array<T, N>::operator=({ T(args)... });
