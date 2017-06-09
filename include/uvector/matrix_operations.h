@@ -128,6 +128,32 @@ namespace uv
 		static_assert(IB < RA, "Component index must be smaller than matrix row count");
 		return (*c) * rows(m)[IB];
 	}
+
+	template <class A, class B, size_t RA, size_t CA, class = if_scalar_t<B>>
+	auto operator*(const Matrix<A, RA, CA>& m, B c)
+	{
+		Matrix<type::of<op::mul, A, B>, RA, CA> result;
+		for (size_t i = 0; i < RA; ++i)
+			rows(result)[i] = rows(m)[i] * c;
+		return result;
+	}
+	template <class A, class B, size_t RA, size_t CA, class = if_scalar_t<B>>
+	auto operator*(B c, const Matrix<A, RA, CA>& m)
+	{
+		Matrix<type::of<op::mul, B, A>, RA, CA> result;
+		for (size_t i = 0; i < RA; ++i)
+			rows(result)[i] = c * rows(m)[i];
+		return result;
+	}
+
+	template <class A, class B, size_t RA, size_t CA, class = if_scalar_t<B>>
+	auto operator/(const Matrix<A, RA, CA>& m, B c)
+	{
+		Matrix<type::of<op::div, A, B>, RA, CA> result;
+		for (size_t i = 0; i < RA; ++i)
+			rows(result)[i] = rows(m)[i] / c;
+		return result;
+	}
 }
 
 #define UVECTOR_MATRIX_OPS_DEFINED
