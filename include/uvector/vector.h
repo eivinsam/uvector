@@ -144,16 +144,16 @@ namespace uv
 		template <class C, size_t N>
 		class indexable_from_begin
 		{
-			C* self() { return reinterpret_cast<C*>(this); }
+			      C* self()       { return reinterpret_cast<C*>(this); }
 			const C* self() const { return reinterpret_cast<const C*>(this); }
 		public:
 
-			auto end() { return self()->begin() + N; }
+			auto end()       { return self()->begin() + N; }
 			auto end() const { return self()->begin() + N; }
 
-			auto& at(size_t i) { if (i >= N) throw std::out_of_range("strided vector element out of range"); return self()->begin()[i]; }
+			auto& at(size_t i)       { if (i >= N) throw std::out_of_range("strided vector element out of range"); return self()->begin()[i]; }
 			auto& at(size_t i) const { if (i >= N) throw std::out_of_range("strided vector element out of range"); return self()->begin()[i]; }
-			auto& operator[](size_t i) { return self()->begin()[i]; }
+			auto& operator[](size_t i)       { return self()->begin()[i]; }
 			auto& operator[](size_t i) const { return self()->begin()[i]; }
 		};
 		template <class T, size_t N, int K>
@@ -183,8 +183,8 @@ namespace uv
 		Vector(const Vector&) = delete;
 
 		template <int KB>
-		Vector& operator=(const Vector<T, N, KB>& other) { for (int i = 0; i < N; ++i) (*this)[i] = other[i]; return *this; }
-		Vector& operator=(T value)                    { for (int i = 0; i < N; ++i) (*this)[i] = value;    return *this; }
+		Vector& operator=(const Vector<T, N, KB>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = other[i]; return *this; }
+		Vector& operator=(T value)                       { for (size_t i = 0; i < N; ++i) (*this)[i] = value;    return *this; }
 
 		auto begin()       { return       iterator{ reinterpret_cast<      T*>(this) }; }
 		auto begin() const { return const_iterator{ reinterpret_cast<const T*>(this) }; }
@@ -235,20 +235,28 @@ namespace uv
 		static_assert(is_scalar_v<T>, "T must be a scalar type");
 		static_assert(N > 1, "vectors must have at least two dimensions");
 
-		template <class... Args>
-		Vector(Args... args) 
+		Vector() { }
+
+		template <class Arg, class = if_scalar_t<Arg>>
+		explicit Vector(Arg arg)
+		{
+			for (size_t i = 0; i < N; ++i)
+				(*this)[i] = T(arg);
+		}
+		template <class... Args, class = std::void_t<if_scalar_t<Args>...>>
+		explicit Vector(Args... args) 
 		{
 			static_assert(sizeof...(Args) == N, "invalid number of elements"); 
 			std::array<T, N>::operator=({ T(args)... });
 		}
-
-		Vector() { }
+		template <class B, int KB>
+		explicit Vector(const Vector<B, N, KB>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = T(other[i]); }
 		template <int KB>
 		Vector(const Vector<T, N, KB>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = other[i]; }
 
-		template <int K>
-		Vector& operator=(const Vector<T, N, K>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = other[i]; return *this; }
-		Vector& operator=(T value) { for (size_t i = 0; i < N; ++i) (*this)[i] = value; return *this; }
+		template <int KB>
+		Vector& operator=(const Vector<T, N, KB>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = other[i]; return *this; }
+		Vector& operator=(T value)                       { for (size_t i = 0; i < N; ++i) (*this)[i] = value;    return *this; }
 
 		explicit operator bool() const { for (size_t i = 0; i < N; ++i) if (!(*this)[i]) return false; return true; }
 	};
