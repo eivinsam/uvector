@@ -137,6 +137,7 @@ namespace uv
 
 	template <size_t N, int K> inline auto operator!(const Vector<bool, N, K>& a) { Vector<bool, N> r; for (size_t i = 0; i < N; ++i) r[i] = !a[i]; return r; }
 
+	TEMPLATE_VECTOR_A inline auto operator-(const VECTOR_A& a) { VECTOR_A r; for (size_t i = 0; i < NA; ++i) r[i] = -a[i]; return r; }
 
 	TEMPLATE_VECTORS_AB	inline auto operator==(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::eq>(a, b); }
 	TEMPLATE_VECTORS_AB	inline auto operator!=(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::ne>(a, b); }
