@@ -273,3 +273,9 @@ namespace uv
 	using double3 = Vector<double, 3>;
 	using double4 = Vector<double, 4>;
 }
+
+#define UVECTOR_VECTOR_DEFINED
+
+#ifdef UVECTOR_BOUNDS_DEFINED
+#include "cross/vector_bounds.h"
+#endif
