@@ -117,6 +117,14 @@ namespace uv
 	auto product(const Vector<T, 2, K>& v) { return v[0] * v[1]; }
 	template <class T, size_t N, int K>
 	auto product(const Vector<T, N, K>& v) { return v[0] * product(rest(v)); }
+	template <class T, int K>
+	auto min(const Vector<T, 2, K>& v) { return op::min{}(v[0], v[1]); }
+	template <class T, size_t N, int K>
+	auto min(const Vector<T, N, K>& v) { return op::min{}(v[0], min(rest(v))); }
+	template <class T, int K>
+	auto max(const Vector<T, 2, K>& v) { return op::max{}(v[0], v[1]); }
+	template <class T, size_t N, int K>
+	auto max(const Vector<T, N, K>& v) { return op::max{}(v[0], max(rest(v))); }
 
 	TEMPLATE_VECTOR_A
 	auto differences(const VECTOR_A& a)
@@ -132,15 +140,30 @@ namespace uv
 
 	TEMPLATE_VECTORS_AB	inline auto operator==(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::eq>(a, b); }
 	TEMPLATE_VECTORS_AB	inline auto operator!=(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::ne>(a, b); }
+	TEMPLATE_VECTORS_AB	inline auto operator< (const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::sl>(a, b); }
+	TEMPLATE_VECTORS_AB	inline auto operator<=(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::le>(a, b); }
+	TEMPLATE_VECTORS_AB	inline auto operator>=(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::ge>(a, b); }
+	TEMPLATE_VECTORS_AB	inline auto operator> (const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::sg>(a, b); }
 
 	TEMPLATE_VECTORS_AB	inline auto operator+(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::add>(a, b); }
 	TEMPLATE_VECTORS_AB inline auto operator-(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::sub>(a, b); }
 	TEMPLATE_VECTORS_AB inline auto operator*(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::mul>(a, b); }
 
+	TEMPLATE_VECTORS_AB inline auto min(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::min>(a, b); }
+	TEMPLATE_VECTORS_AB inline auto max(const VECTOR_A& a, const VECTOR_B& b) { return details::apply<op::max>(a, b); }
+
 	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator==(const VECTOR_A& a, B b) { return details::apply<op::eq>(a, b); }
 	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator==(B b, const VECTOR_A& a) { return details::apply<op::eq>(b, a); }
 	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator!=(const VECTOR_A& a, B b) { return details::apply<op::ne>(a, b); }
 	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator!=(B b, const VECTOR_A& a) { return details::apply<op::ne>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator< (const VECTOR_A& a, B b) { return details::apply<op::sl>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator< (B b, const VECTOR_A& a) { return details::apply<op::sl>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator<=(const VECTOR_A& a, B b) { return details::apply<op::le>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator<=(B b, const VECTOR_A& a) { return details::apply<op::le>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator>=(const VECTOR_A& a, B b) { return details::apply<op::ge>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator>=(B b, const VECTOR_A& a) { return details::apply<op::ge>(b, a); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator> (const VECTOR_A& a, B b) { return details::apply<op::sg>(a, b); }
+	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator> (B b, const VECTOR_A& a) { return details::apply<op::sg>(b, a); }
 
 	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator+(const VECTOR_A& a, B b) { return details::apply<op::add>(a, b); }
 	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator+(B b, const VECTOR_A& a) { return details::apply<op::add>(b, a); }
@@ -205,6 +228,15 @@ namespace uv
 
 	TEMPLATE_VECTOR_A auto square(const VECTOR_A& a) { return sum(a*a); }
 	TEMPLATE_VECTOR_A auto length(const VECTOR_A& a) { return sqrt(square(a)); }
+
+	TEMPLATE_VECTOR_A auto abs(const VECTOR_A& a)
+	{
+		using namespace std;
+		VECTOR_A result;
+		for (size_t i = 0; i < NA; ++i)
+			result[i] = abs(a[i]);
+		return result;
+	}
 
 	template <size_t N, int K>
 	constexpr size_t index(const Vector<bool, N, K>& v)

@@ -26,7 +26,14 @@ namespace uv
 		struct mul { template <class A, class B> auto operator()(const A& a, const B& b) { return a * b; } };
 		struct div { template <class A, class B> auto operator()(const A& a, const B& b) { return a / b; } };
 
-		struct eq { template <class A, class B> auto operator()(const A& a, const B& b) { return a == b; } };
-		struct ne { template <class A, class B> auto operator()(const A& a, const B& b) { return a != b; } };
+		struct eq { template <class A, class B> auto operator()(const A& a, const B& b) { return a == b; } }; // Equal
+		struct ne { template <class A, class B> auto operator()(const A& a, const B& b) { return a != b; } }; // Not Equal
+		struct sl { template <class A, class B> auto operator()(const A& a, const B& b) { return a <  b; } }; // Strictly Less
+		struct le { template <class A, class B> auto operator()(const A& a, const B& b) { return a <= b; } }; // Less or Equal
+		struct ge { template <class A, class B> auto operator()(const A& a, const B& b) { return a >= b; } }; // Greater or Equal
+		struct sg { template <class A, class B> auto operator()(const A& a, const B& b) { return a >  b; } }; // Strictly Greater
+
+		struct min { template <class A, class B> auto operator()(const A& a, const B& b) { return a <= b ? a : b; } };
+		struct max { template <class A, class B> auto operator()(const A& a, const B& b) { return a >= b ? a : b; } };
 	}
 }
