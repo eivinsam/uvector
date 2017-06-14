@@ -158,6 +158,10 @@ namespace uv
 
 #define UVECTOR_MATRIX_OPS_DEFINED
 
+#ifdef UVECTOR_COMPLEX_OPS_DEFINED
+#include "cross/matrix_complex.h"
+#endif
+
 #ifdef UVECTOR_QUATERNION_OPS_DEFINED
 #include "cross/matrix_quaternion.h"
 #endif
