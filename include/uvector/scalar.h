@@ -9,6 +9,9 @@ namespace uv
 	static constexpr auto pif = pi<float>;
 	static constexpr auto pid = pi<double>;
 
+	static constexpr auto inff = std::numeric_limits<float> ::infinity();
+	static constexpr auto infd = std::numeric_limits<double>::infinity();
+
 	template <class T>
 	struct is_scalar : public std::is_arithmetic<T> { };
 	template <class T>
