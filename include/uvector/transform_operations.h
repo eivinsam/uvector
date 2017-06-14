@@ -33,8 +33,8 @@ namespace uv
 	TEMPLATE_ABN auto operator*(Transform<A, N> tf, const  Rotation<B, N>& R) { tf.R =        tf.R*R; return tf; }
 
 	TEMPLATE_ABN auto operator*(const Transform<A, N>& a,  const Transform<B, N>& b) { return { a.t + a.R*b.t, a.R * b.R }; }
-	TEMPLATE_ABN DIR_RESULT(mul) operator*(const Transform<A, N>& tf, const Direction<B, N>& d) { return tf.R * d; }
-	TEMPLATE_ABN PNT_RESULT(mul) operator*(const Transform<A, N>& tf, const     Point<B, N>& p) { return tf.R * p + tf.t; }
+	TEMPLATE_ABN auto operator*(const Transform<A, N>& tf, const Direction<B, N>& d) { return tf.R * d; }
+	TEMPLATE_ABN auto operator*(const Transform<A, N>& tf, const     Point<B, N>& p) { return tf.R * p + tf.t; }
 
 
 	template <class A, class B, size_t N, size_t I>
