@@ -5,11 +5,11 @@
 
 namespace uv
 {
-	using floatB2 = Vector<Bounds<float>, 2>;
-	using floatB3 = Vector<Bounds<float>, 3>;
-	using floatB4 = Vector<Bounds<float>, 4>;
+	using Bounds2f = Vector<Bounds<float>, 2>;
+	using Bounds3f = Vector<Bounds<float>, 3>;
+	using Bounds4f = Vector<Bounds<float>, 4>;
 
-	using doubleB2 = Vector<Bounds<double>, 2>;
-	using doubleB3 = Vector<Bounds<double>, 3>;
-	using doubleB4 = Vector<Bounds<double>, 4>;
+	using Bounds2d = Vector<Bounds<double>, 2>;
+	using Bounds3d = Vector<Bounds<double>, 3>;
+	using Bounds4d = Vector<Bounds<double>, 4>;
 }

@@ -18,8 +18,8 @@ namespace uv
 	template <class T>
 	struct is_scalar<Bounds<T>> : public std::true_type { };
 
-	using floatB = Bounds<float>;
-	using doubleB = Bounds<double>;
+	using Boundsf = Bounds<float>;
+	using Boundsd = Bounds<double>;
 }
 
 #define UVECTOR_BOUNDS_DEFINED
