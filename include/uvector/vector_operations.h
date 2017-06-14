@@ -19,6 +19,40 @@ namespace uv
 		constexpr details::equal_test<A, B> equal = {};
 	}
 
+	template <class A, class B, size_t N, int K, int KA, int KB>
+	auto ifelse(const Vector<bool, N, K>& cond, const Vector<A, N, KA>& a, const Vector<B, N, KB>& b)
+	{
+		Vector<std::common_type_t<A, B>, N> result;
+		for (size_t i = 0; i < N; ++i)
+			result[i] = cond[i] ? a[i] : b[i];
+		return result;
+	}
+	template <class A, class B, size_t N, int K, int KA>
+	auto ifelse(const Vector<bool, N, K>& cond, const Vector<A, N, KA>& a, B b)
+	{
+		Vector<std::common_type_t<A, B>, N> result;
+		for (size_t i = 0; i < N; ++i)
+			result[i] = cond[i] ? a[i] : b;
+		return result;
+	}
+	template <class A, class B, size_t N, int K, int KB>
+	auto ifelse(const Vector<bool, N, K>& cond, A a, const Vector<B, N, KB>& b)
+	{
+		Vector<std::common_type_t<A, B>, N> result;
+		for (size_t i = 0; i < N; ++i)
+			result[i] = cond[i] ? a : b[i];
+		return result;
+	}
+	template <class A, class B, size_t N, int K>
+	auto ifelse(const Vector<bool, N, K>& cond, A a, B b)
+	{
+		Vector<std::common_type_t<A, B>, N> result;
+		for (size_t i = 0; i < N; ++i)
+			result[i] = cond[i] ? a : b;
+		return result;
+	}
+
+
 	template <size_t... Indices, class V>
 	auto&& select(V&& source) { return details::selector<Indices...>::on(source); }
 
@@ -250,6 +284,15 @@ namespace uv
 	static constexpr size_t index() { return 0; };
 	template <size_t... I>
 	constexpr size_t index(Axes<I...>) { return details::index_s<I...>::value; }
+
+	template <size_t N> 
+	auto from_index(size_t idx)
+	{
+		Vector<bool, N> result;
+		for (size_t i = 0; i < N; ++i)
+			result[i] = (idx & (1 << i)) != 0;
+		return result;
+	}
 
 	template <class First, class... Rest>
 	inline auto vector(const First& first, const Rest&... rest)
