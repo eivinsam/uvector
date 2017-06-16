@@ -10,47 +10,45 @@
 #pragma push_macro("PNT_RESULT")
 #define PNT_RESULT(OP) Point<type::of<op::OP, A, B>, N>
 #pragma push_macro("DIR_RESULT")
-#define DIR_RESULT(OP) Direction<type::of<op::OP, A, B>, N>
+#define DIR_RESULT(OP) Vector<type::of<op::OP, A, B>, N>
+#pragma push_macro("MATRIX_N")
+#define MATRIX_N(T) Matrix<type::identity<T>, N, N>
 
 namespace uv
 {
-	TEMPLATE_ABN PNT_RESULT(add) operator+(const Point<A, N>& p, const Direction<B, N>& d) { return { p.v + d }; }
-	TEMPLATE_ABN PNT_RESULT(add) operator+(const Direction<A, N>& d, const Point<B, N>& p) { return { d + p.v }; }
+	template <class T, size_t N, int K> auto& point(      Vector<T, N, K>& d) { return reinterpret_cast<      Point<T, N, K>&>(d); }
+	template <class T, size_t N, int K> auto& point(const Vector<T, N, K>& d) { return reinterpret_cast<const Point<T, N, K>&>(d); }
 
-	TEMPLATE_ABN DIR_RESULT(sub) operator-(const Point<A, N>& a, const     Point<B, N>& b) { return { a.v - b.v }; }
-	TEMPLATE_ABN PNT_RESULT(sub) operator-(const Point<A, N>& a, const Direction<B, N>& b) { return { a.v - b }; }
+	TEMPLATE_ABN PNT_RESULT(add) operator+(const Point<A, N>& p, const Vector<B, N>& d) { return { p.v + d }; }
+	TEMPLATE_ABN PNT_RESULT(add) operator+(const Vector<A, N>& d, const Point<B, N>& p) { return { d + p.v }; }
 
-	TEMPLATE_ABN auto dot(const Point<A, N>& a, const Direction<B, N>& b) { return dot(a.v, b); }
-	TEMPLATE_ABN auto dot(const Direction<A, N>& a, const Point<B, N>& b) { return dot(a, b.v); }
+	TEMPLATE_ABN DIR_RESULT(sub) operator-(const Point<A, N>& a, const  Point<B, N>& b) { return { a.v - b.v }; }
+	TEMPLATE_ABN PNT_RESULT(sub) operator-(const Point<A, N>& a, const Vector<B, N>& b) { return { a.v - b }; }
 
-	TEMPLATE_ABN PNT_RESULT(mul) operator*(const Matrix<A, N, N>& R, const Point<B, N>& p) { return { R * p.v }; }
+	TEMPLATE_ABN auto dot(const Point<A, N>& a, const Vector<B, N>& b) { return dot(a.v, b); }
+	TEMPLATE_ABN auto dot(const Vector<A, N>& a, const Point<B, N>& b) { return dot(a, b.v); }
 
-	TEMPLATE_TN auto transform(const Direction<T, N>& t) { return Transform<T, N>{ 1, t }; }
-	TEMPLATE_TN auto transform(const  Rotation<T, N>& R) { return Transform<T, N>{ R, 0 }; }
-	TEMPLATE_TN auto transform(const  Rotation<T, N>& R, const Direction<T, N>& t) { return Transform<T, N>{ R, t }; }
+	TEMPLATE_ABN Point<type::inner_product<A, B>, N> operator*(const Matrix<A, N, N>& Rs, const Point<B, N>& p) { return { Rs * p.v }; }
 
-	TEMPLATE_ABN auto operator+(Transform<A, N> tf, const Direction<B, N>& t) { tf.t = tf.t + tf.R*t; return tf; }
-	TEMPLATE_ABN auto operator*(Transform<A, N> tf, const  Rotation<B, N>& R) { tf.R =        tf.R*R; return tf; }
+	TEMPLATE_TN auto transform(const Vector<T, N>& t) { return Transform<T, N>{ 1, t }; }
+	TEMPLATE_TN auto transform(const MATRIX_N(T)& Rs) { return Transform<T, N>{ Rs, 0 }; }
+	TEMPLATE_TN auto transform(const MATRIX_N(T)& Rs, const Vector<T, N>& t) { return Transform<T, N>{ Rs, t }; }
 
-	TEMPLATE_ABN auto operator*(const Transform<A, N>& a,  const Transform<B, N>& b) { return { a.t + a.R*b.t, a.R * b.R }; }
-	TEMPLATE_ABN auto operator*(const Transform<A, N>& tf, const Direction<B, N>& d) { return tf.R * d; }
-	TEMPLATE_ABN auto operator*(const Transform<A, N>& tf, const     Point<B, N>& p) { return tf.R * p + tf.t; }
+	TEMPLATE_ABN auto operator+(Transform<A, N> tf, const Vector<B, N>& t) { tf.t = tf.t + tf.Rs*t; return tf; }
+	TEMPLATE_ABN auto operator*(Transform<A, N> tf, const MATRIX_N(B)& Rs) { tf.Rs =        tf.Rs*Rs; return tf; }
+
+	TEMPLATE_ABN auto operator*(const Transform<A, N>& a,  const Transform<B, N>& b) { return { a.t + a.Rs*b.t, a.Rs * b.Rs }; }
+	TEMPLATE_ABN auto operator*(const Transform<A, N>& tf, const    Vector<B, N>& d) { return tf.Rs * d; }
+	TEMPLATE_ABN auto operator*(const Transform<A, N>& tf, const     Point<B, N>& p) { return tf.Rs * p + tf.t; }
 
 
 	template <class A, class B, size_t N, size_t I>
-	auto operator*(const Transform<A, N>& tf, Component<B, I> c)        { return tf.R * c + tf.t; }
+	auto operator*(const Transform<A, N>& tf, Component<B, I> c)        { return tf.Rs * c + tf.t; }
 
-	// Returns the inverse transformation only for orthonormal tf.R
-	TEMPLATE_TN Transform<T, N> invert_unsafe(Transform<T, N> tf)
-	{
-		tf.R = transpose(tf.R);
-		tf.t = -(tf.R*tf.t);
-		return tf;
-	}
 	TEMPLATE_TN Transform<T, N> invert(Transform<T, N> tf)
 	{
-		tf.R = invert(tf.R);
-		tf.t = -(tf.R*tf.t);
+		tf.Rs = invert(tf.Rs);
+		tf.t = -(tf.Rs*tf.t);
 		return tf;
 	}
 
@@ -59,7 +57,7 @@ namespace uv
 		Matrix<T, N + 1, N + 1> result;
 		for (size_t i = 0; i < N; ++i)
 			for (size_t j = 0; j < N; ++j)
-				rows(result)[i][j] = rows(tf.R)[i][j];
+				rows(result)[i][j] = rows(tf.Rs)[i][j];
 		for (size_t i = 0; i < N; ++i)
 			cols(result)[N][i] = tf.t[i];
 		for (size_t i = 0; i < N; ++i)
@@ -74,3 +72,4 @@ namespace uv
 #pragma pop_macro("TEMPLATE_ABN")
 #pragma pop_macro("PNT_RESULT")
 #pragma pop_macro("DIR_RESULT")
+#pragma pop_macro("MATRIX_N")

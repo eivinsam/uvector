@@ -7,15 +7,16 @@ namespace uv
 	struct Origo { };
 	static constexpr Origo origo;
 
-	template <class T, size_t N>
+	template <class T, size_t N, int K = 1>
 	class Point
 	{
 	public:
-		Vector<T, N> v;
+		Vector<T, N, K> v;
 
 		Point() { }
 		Point(Origo) : v(T(0)) { }
-		Point(const Vector<T, N>& a) : v(a) { }
+		template <int KB>
+		Point(const Vector<T, N, KB>& a) : v(a) { }
 
 		Point& operator=(Origo)                 { v = T(0); return *this; }
 		Point& operator=(const Vector<T, N>& a) { v = a;    return *this; }
@@ -27,31 +28,12 @@ namespace uv
 	using Point3d = Point<double, 3>;
 	using Point4d = Point<double, 4>;
 
-
-	template <class T, size_t N>
-	using Direction = Vector<T, N>;
-	using Direction2f = Direction<float, 2>;
-	using Direction3f = Direction<float, 3>;
-	using Direction4f = Direction<float, 4>;
-	using Direction2d = Direction<double, 2>;
-	using Direction3d = Direction<double, 3>;
-	using Direction4d = Direction<double, 4>;
-
-	template <class T, size_t N>
-	using Rotation = Matrix<type::identity<T>, N, N>;
-	using Rotation2f = Rotation<float, 2>;
-	using Rotation3f = Rotation<float, 3>;
-	using Rotation4f = Rotation<float, 4>;
-	using Rotation2d = Rotation<double, 2>;
-	using Rotation3d = Rotation<double, 3>;
-	using Rotation4d = Rotation<double, 4>;
-
 	template <class T, size_t N>
 	class Transform
 	{
 	public:
-		Rotation <T, N> R;
-		Direction<T, N> t;
+		Matrix<type::identity<T>, N, N> Rs;
+		Vector<T, N> t;
 	};
 	using Transform2f = Transform<float, 2>;
 	using Transform3f = Transform<float, 3>;
