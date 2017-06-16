@@ -4,8 +4,11 @@
 
 namespace uv
 {
+	template <class T, size_t N = 1>
+	struct Bounds;
+
 	template <class T>
-	struct Bounds
+	struct Bounds<T, 1>
 	{
 		static_assert(is_scalar_v<T>, "T must be scalar");
 		T min;
@@ -16,7 +19,7 @@ namespace uv
 	};
 
 	template <class T>
-	struct is_scalar<Bounds<T>> : public std::true_type { };
+	struct is_scalar<Bounds<T, 1>> : public std::true_type { };
 
 	using Boundsf = Bounds<float>;
 	using Boundsd = Bounds<double>;
