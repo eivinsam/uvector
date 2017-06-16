@@ -6,11 +6,19 @@
 
 namespace uv
 {
+	template <class A, class B, class = std::void_t<if_scalar_t<A>, if_scalar_t<B>>>
+	auto max(A a, B b) { return a >= b ? a : b; }
+	template <class A, class B, class = std::void_t<if_scalar_t<A>, if_scalar_t<B>>>
+	auto min(A a, B b) { return a <= b ? a : b; }
+
 	template <class T>
 	auto twice(T v) { return v + v; }
 
 	template <class T, class = if_scalar_t<T>>
 	auto square(T value) { return value*value; }
+
+	using std::sqrt;
+	using std::cbrt;
 
 	template <class T, class = if_scalar_t<T>>
 	auto length(T value) { return std::abs(value); }
