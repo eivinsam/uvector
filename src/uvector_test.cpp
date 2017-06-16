@@ -182,8 +182,7 @@ void test_matrix(const Vector<T, N>& a)
 	CHECK_EACH(rows(A*B) == rows(rows(d[0] * rows(B)[0], d[1] * rows(B)[1], d[2] * rows(B)[2], d[3] * rows(B)[3])));
 }
 
-template <class T, size_t N>
-void test_quaternion(const Vector<T, N>& v)
+void test_quaternion(const Vector<float, 4>& v)
 {
 	tester::section = "quaternion";
 	using namespace axes;
@@ -195,7 +194,26 @@ void test_quaternion(const Vector<T, N>& v)
 	CHECK_EACH(R*Z == vector<float>(0, 0, 1));
 
 	CHECK_APPROX(rotate(a, v*XYZ) * (v*XYZ) == v*XYZ);
+
+	auto old_p = tester::presicion;
+	tester::presicion = 2e-4f;
+
+	auto q = quaternion(signed_unit_float(), signed_unit_float(), signed_unit_float(), signed_unit_float());
+	if (real(q) < 0)
+		q = -q;
+	auto qm = matrix(q);
+	CHECK_APPROX(q * X == qm * X);
+	CHECK_APPROX(q * Y == qm * Y);
+	CHECK_APPROX(q * Z == qm * Z);
+	auto qmq = quaternion(qm);
+	CHECK_APPROX(q.v == qmq.v);
+
+	tester::presicion = old_p;
 }
+void test_quaternion(const Vector<units::Distance<float>, 4>&)
+{ 
+}
+
 
 template <class T>
 void fuzz_vectors()
