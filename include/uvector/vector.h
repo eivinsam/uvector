@@ -261,6 +261,9 @@ namespace uv
 		explicit operator bool() const { for (size_t i = 0; i < N; ++i) if (!(*this)[i]) return false; return true; }
 	};
 
+	template <class T, size_t N, int K = 1>
+	using UnitVector = UnitLength<Vector<T, N, K>>;
+
 	using bool2 = Vector<bool, 2>;
 	using bool3 = Vector<bool, 3>;
 	using bool4 = Vector<bool, 4>;
