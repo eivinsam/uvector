@@ -27,32 +27,14 @@ namespace uv
 	auto distance(const A& a, const B& b) { return length(a - b); }
 
 	template <class T>
-	class UnitLength
+	bool UnitLength<T>::_is_approx_unit_length()
 	{
-		T _value;
-
-		bool _is_approx_unit_length()
-		{
-			using U = decltype(length(_value));
-			static constexpr auto above = U(1 + 1e-4f);
-			static constexpr auto below = U(1 / above);
-			const auto l = length(_value);
-			return below < l && l < above;
-		}
-	public:
-		UnitLength(const T& value) : _value(value) { Expects(_is_approx_unit_length()); }
-
-		static UnitLength no_check(const T& value) { return reinterpret_cast<const UnitLength&>(value); }
-
-		const T* operator->() const { return &_value; }
-		const T& operator* () const { return _value; }
-
-		template <class = std::void_t<decltype(_value[0])>>
-		const auto& operator[](size_t i) const { return _value[i]; }
-
-		template <class = std::void_t<decltype(std::begin(_value))>> auto begin() const { return std::begin(_value); }
-		template <class = std::void_t<decltype(std::end  (_value))>> auto end()   const { return std::end  (_value);   }
-	};
+		using SQ = decltype(square(_value));
+		static constexpr auto above = SQ(1 + 1e-4f);
+		static constexpr auto below = SQ(1 / above);
+		const auto sq = square(_value);
+		return below < sq && sq < above;
+	}
 
 	template <class T>
 	std::ostream& operator<<(std::ostream& out, const UnitLength<T>& u)
