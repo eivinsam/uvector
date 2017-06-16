@@ -244,7 +244,7 @@ namespace uv
 				(*this)[i] = T(arg);
 		}
 		template <class... Args, class = std::void_t<if_scalar_t<Args>...>>
-		explicit Vector(Args... args) 
+		constexpr explicit Vector(Args... args) 
 		{
 			static_assert(sizeof...(Args) == N, "invalid number of elements"); 
 			std::array<T, N>::operator=({ T(args)... });
