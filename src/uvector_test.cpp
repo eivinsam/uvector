@@ -223,6 +223,9 @@ void test_rotate(const Vector<float, 4>&)
 	auto R = rotate(ax, vd);
 	CHECK_APPROX(det(R) == 1);
 	CHECK_APPROX(*vd == R**ax);
+
+	CHECK_EACH(cols(R) == cols(rotate(X, vd)));
+	CHECK_EACH_APPROX(cols(R) == cols(transpose(rotate(vd, X))));
 }
 void test_rotate(const Vector<units::Distance<float>, 4>&)
 {

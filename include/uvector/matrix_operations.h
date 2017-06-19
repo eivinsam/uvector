@@ -193,6 +193,44 @@ namespace uv
 		result = result + sscv + (sscv*sscv)*coef;
 		return result;
 	}
+	template <class A, int KA, size_t I>
+	auto rotate(Axes<I> from, const UnitVector<A, 3, KA>& to)
+	{
+		using namespace axes;
+		using T = typename decltype(cross(from, *to))::scalar_type;
+		Matrix<T, 3, 3> result(1);
+		if (square(1*from - *to) < 0.00001f)
+			return result;
+
+		auto v = cross(from, *to);
+		auto coef = (1 - dot(from, *to)) / square(v);
+		auto sscv = cols(
+			vector<T>(0, v*Z, -v*Y),
+			vector<T>(-v*Z, 0, v*X),
+			vector<T>(v*Y, -v*X, 0));
+
+		result = result + sscv + (sscv*sscv)*coef;
+		return result;
+	}
+	template <class A, int KA, size_t I>
+	auto rotate(const UnitVector<A, 3, KA>& from, Axes<I> to)
+	{
+		using namespace axes;
+		using T = typename decltype(cross(*from, to))::scalar_type;
+		Matrix<T, 3, 3> result(1);
+		if (square(*from - 1*to) < 0.00001f)
+			return result;
+
+		auto v = cross(*from, to);
+		auto coef = (1 - dot(*from, to)) / square(v);
+		auto sscv = cols(
+			vector<T>(0, v*Z, -v*Y),
+			vector<T>(-v*Z, 0, v*X),
+			vector<T>(v*Y, -v*X, 0));
+
+		result = result + sscv + (sscv*sscv)*coef;
+		return result;
+	}
 }
 
 #define UVECTOR_MATRIX_OPS_DEFINED
