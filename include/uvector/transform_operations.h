@@ -28,7 +28,7 @@ namespace uv
 	TEMPLATE_ABN auto dot(const Point<A, N>& a, const Vector<B, N>& b) { return dot(a.v, b); }
 	TEMPLATE_ABN auto dot(const Vector<A, N>& a, const Point<B, N>& b) { return dot(a, b.v); }
 
-	TEMPLATE_ABN Point<type::inner_product<A, B>, N> operator*(const Matrix<A, N, N>& Rs, const Point<B, N>& p) { return { Rs * p.v }; }
+	TEMPLATE_ABN auto operator*(const Matrix<A, N, N>& Rs, const Point<B, N>& p) { return point(Rs * p.v); }
 
 	TEMPLATE_TN auto transform(const Vector<T, N>& t) { return Transform<T, N>{ 1, t }; }
 	TEMPLATE_TN auto transform(const MATRIX_N(T)& Rs) { return Transform<T, N>{ Rs, 0 }; }
