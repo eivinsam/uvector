@@ -214,6 +214,21 @@ void test_quaternion(const Vector<units::Distance<float>, 4>&)
 { 
 }
 
+void test_rotate(const Vector<float, 4>&)
+{
+	auto v = vector<float>(signed_unit_float(), signed_unit_float(), signed_unit_float());
+	auto ax = decompose(vector<float>(1, 0, 0)).direction;
+	tester::section = "rotate";
+	auto vd = decompose(v).direction;
+	auto R = rotate(ax, vd);
+	CHECK_APPROX(det(R) == 1);
+	CHECK_APPROX(*vd == R**ax);
+}
+void test_rotate(const Vector<units::Distance<float>, 4>&)
+{
+
+}
+
 
 template <class T>
 void fuzz_vectors()
@@ -233,6 +248,7 @@ void fuzz_vectors()
 		test_components(a, c);
 		test_matrix(a);
 		test_quaternion(a);
+		test_rotate(a);
 	}
 }
 

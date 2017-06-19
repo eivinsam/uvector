@@ -73,6 +73,25 @@ namespace uv
 	template <class T, size_t R, size_t C> auto    det(const Matrix<T, R, C>& m) { return details::square_op<R, C>::det(m); }
 	template <class T, size_t R, size_t C> auto invert(const Matrix<T, R, C>& m) { return details::square_op<R, C>::inv(m); }
 
+	template <class A, class B, size_t RA, size_t CA, size_t RB, size_t CB>
+	auto operator+(const Matrix<A, RA, CA>& a, const Matrix<B, RB, CB>& b)
+	{
+		static_assert(RA == RB && CA == CB, "Invalid matrix dimensions for addition");
+		Matrix<type::of<op::add, A, B>, RA, CA> result;
+		for (int i = 0; i < RA; ++i)
+			rows(result)[i] = rows(a)[i] + rows(b)[i];
+		return result;
+	}
+	template <class A, class B, size_t RA, size_t CA, size_t RB, size_t CB>
+	auto operator-(const Matrix<A, RA, CA>& a, const Matrix<B, RB, CB>& b)
+	{
+		static_assert(RA == RB && CA == CB, "Invalid matrix dimensions for substraction");
+		Matrix<type::of<op::add, A, B>, RA, CA> result;
+		for (int i = 0; i < RA; ++i)
+			rows(result)[i] = rows(a)[i] - rows(b)[i];
+		return result;
+	}
+
 	template <class A, class B, size_t R, size_t C, size_t N, int K>
 	auto operator*(const Matrix<A, R, C>& m, const Vector<B, N, K>& v)
 	{
@@ -152,6 +171,26 @@ namespace uv
 		Matrix<type::of<op::div, A, B>, RA, CA> result;
 		for (size_t i = 0; i < RA; ++i)
 			rows(result)[i] = rows(m)[i] / c;
+		return result;
+	}
+
+	template <class A, class B, int KA, int KB>
+	auto rotate(const UnitVector<A, 3, KA>& from, const UnitVector<B, 3, KB>& to)
+	{
+		using namespace axes;
+		using T = typename decltype(cross(*from, *to))::scalar_type;
+		Matrix<T, 3, 3> result(1);
+		if (square(*from - *to) < 0.00001f)
+			return result;
+
+		auto v = cross(*from, *to);
+		auto coef = (1 - dot(*from, *to)) / square(v);
+		auto sscv = cols(
+			vector<T>(0,  v*Z, -v*Y),
+			vector<T>(-v*Z, 0,  v*X),
+			vector<T>(v*Y, -v*X, 0));
+
+		result = result + sscv + (sscv*sscv)*coef;
 		return result;
 	}
 }
