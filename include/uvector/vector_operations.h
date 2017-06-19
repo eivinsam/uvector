@@ -208,58 +208,53 @@ namespace uv
 	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator*(B b, const VECTOR_A& a) { return details::apply<op::mul>(b, a); }
 	TEMPLATE_VECTOR_A_SCALAR_B inline auto operator/(const VECTOR_A& a, B b) { return details::apply<op::div>(a, b); }
 
-	namespace details
-	{
-		template <class A, class B, size_t N, int KA, int KB>
-		struct binary_op
-		{
-			static auto dot(const Vector<A, N, KA>& a, const Vector<B, N, KB>& b)
-			{
-				return sum(a*b);
-			}
-		};
-		template <class A, class B, int KA, int KB>
-		struct binary_op<A, B, 2, KA, KB>
-		{
-			static auto dot(const Vector<A, 2, KA>& a, const Vector<B, 2, KB>& b)
-			{
-				return a[0] * b[0] + a[1] * b[1];
-			}
-			static auto cross(const Vector<A, 2, KA>& a, const Vector<B, 2, KB>& b)
-			{
-				return a[0] * b[1] - a[1] * b[0];
-			}
-		};
-		template <class A, class B, int KA, int KB>
-		struct binary_op<A, B, 3, KA, KB>
-		{
-			static auto dot(const Vector<A, 3, KA>& a, const Vector<B, 3, KB>& b)
-			{
-				return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-			}
-			static auto cross(const Vector<A, 3, KA>& a, const Vector<B, 3, KB>& b)
-			{
-				return Vector<type::of<op::sub, type::of<op::mul, A, B>>, 3>(
-						a[1] * b[2] - a[2] * b[1],
-						a[2] * b[0] - a[0] * b[2],
-						a[0] * b[1] - a[1] * b[0]);
-			}
-		};
-	}
 
-	TEMPLATE_VECTORS_AB
-		type::inner_product<A, B> dot(const VECTOR_A& a, const VECTOR_B& b)
+	TEMPLATE_VECTORS_AB	auto dot(const VECTOR_A& a, const VECTOR_B& b) { return sum(a*b); }
+
+	template <class A, size_t NA, int KA, int I>
+	auto dot(const VECTOR_A& a, Axes<I>)
 	{
-		require::equal<NA, NB>;
-		return details::binary_op<A, B, NA, KA, KB>::dot(a, b);
+		static_assert(I < NA, "Cannot dot vector with higher-dimensional axis");
+		return a[I];
 	}
-	TEMPLATE_VECTORS_AB
-		auto cross(const VECTOR_A& a, const VECTOR_B& b)
+	template <class A, size_t NA, int KA, int I>
+	auto dot(Axes<I> ax, const VECTOR_A& a) { return dot(a, ax); }
+
+	template <class A, class B, size_t NA, int KA, size_t IB>
+	auto dot(const VECTOR_A& a, Component<B, IB> b) { return dot(a, Axes<IB>{}) * *b; }
+	template <class A, class B, size_t NA, int KA, size_t IB>
+	auto dot(Component<B, IB> b, const VECTOR_A& a) { return dot(a, Axes<IB>{}) * *b; }
+
+
+	template <class A, class B, int KA, int KB> 
+	auto cross(const Vector<A, 2, KA>& a, const Vector<B, 2, KB>& b)
 	{
-		require::equal<NA, NB>;
-		static_assert(NA == 2 || NA == 3, "cross product only defined in 3 or 2 dimensions");
-		return details::binary_op<A, B, NA, KA, KB>::cross(a, b);
+		return a[0] * b[1] - a[1] * b[0];
 	}
+	template <class A, class B, int KA, int KB>
+	auto cross(const Vector<A, 3, KA>& a, const Vector<B, 3, KB>& b)
+	{
+		using namespace axes;
+		return vector(
+			cross(a*YZ, b*YZ),
+			cross(a*ZX, b*ZX),
+			cross(a*XY, b*XY));
+	}
+	
+	template <class A, int KA> auto cross(Axes<0>, const Vector<A, 2, KA>& a) { return +a[1]; }
+	template <class A, int KA> auto cross(Axes<1>, const Vector<A, 2, KA>& a) { return -a[0]; }
+	template <class A, int KA> auto cross(const Vector<A, 2, KA>& a, Axes<0>) { return -a[1]; }
+	template <class A, int KA> auto cross(const Vector<A, 2, KA>& a, Axes<1>) { return +a[0]; }
+
+	template <class A, int KA> auto cross(Axes<0>, const Vector<A, 3, KA>& a) { return vector<A>(0, -a[2], +a[1]); }
+	template <class A, int KA> auto cross(const Vector<A, 3, KA>& a, Axes<0>) { return vector<A>(0, +a[2], -a[1]); }
+	template <class A, int KA> auto cross(Axes<1>, const Vector<A, 3, KA>& a) { return vector<A>(+a[2], 0, -a[0]); }
+	template <class A, int KA> auto cross(const Vector<A, 3, KA>& a, Axes<1>) { return vector<A>(-a[2], 0, +a[0]); }
+	template <class A, int KA> auto cross(Axes<2>, const Vector<A, 3, KA>& a) { return vector<A>(-a[1], +a[0], 0); }
+	template <class A, int KA> auto cross(const Vector<A, 3, KA>& a, Axes<2>) { return vector<A>(+a[1], -a[0], 0); }
+
+	template <class A, class B, size_t NA, int KA, size_t IB> auto cross(const VECTOR_A& a, Component<B, IB> b) { return cross(a, Axes<IB>{}) * *b; }
+	template <class A, class B, size_t NA, int KA, size_t IB> auto cross(Component<B, IB> b, const VECTOR_A& a) { return *b * cross(Axes<IB>{}, a); }
 
 	TEMPLATE_VECTOR_A auto square(const VECTOR_A& a) { return sum(a*a); }
 	TEMPLATE_VECTOR_A auto length(const VECTOR_A& a) { return sqrt(square(a)); }
