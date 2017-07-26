@@ -12,8 +12,10 @@
 
 namespace uv
 {
-	template <class T, size_t N, int K> auto& point(      Vector<T, N, K>& d) { return reinterpret_cast<      Point<T, N, K>&>(d); }
-	template <class T, size_t N, int K> auto& point(const Vector<T, N, K>& d) { return reinterpret_cast<const Point<T, N, K>&>(d); }
+	template <class T, size_t N> auto& point(      Vector<T, N>& d) { return reinterpret_cast<      Point<T, N>&>(d); }
+	template <class T, size_t N> auto& point(const Vector<T, N>& d) { return reinterpret_cast<const Point<T, N>&>(d); }
+
+	template <class T, size_t N, int K> Point<T, N> point(const Vector<T, N, K>& d) { return { d }; }
 
 	template <class T, size_t N, int K> Point<T, N> operator+(const Vector<T, N, K>& v, Origo) { return point(v); }
 	template <class T, size_t N, int K> Point<T, N> operator+(Origo, const Vector<T, N, K>& v) { return point(v); }
@@ -29,6 +31,9 @@ namespace uv
 			result.v[i] = cond[i] ? a.v[i] : b.v[i];
 		return result;
 	}
+
+	template <class A, size_t N, size_t... I> auto operator*(const Point<A, N>& p, Axes<I...> a) { return point(p.v * a); }
+	template <class A, size_t N, size_t... I> auto operator*(Axes<I...> a, const Point<A, N>& p) { return point(a * p.v); }
 
 	TEMPLATE_ABNK auto operator+(const Point<A, N>& p, const Vector<B, N, K>& d) { return point(p.v + d); }
 	TEMPLATE_ABNK auto operator+(const Vector<A, N, K>& d, const Point<B, N>& p) { return point(d + p.v); }
