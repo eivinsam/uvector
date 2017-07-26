@@ -1,12 +1,11 @@
 #include <uvector/vector_operations.h>
 #include <uvector/matrix_operations.h>
 #include <uvector/quaternion_operations.h>
+#include <uvector/bounds_operations.h>
 #include <units.h>
-
 
 #include <tester_with_macros.h>
 #include <random>
-
 
 using namespace uv;
 using namespace uv::axes;
@@ -151,6 +150,25 @@ void test_components(const Vector<T,N>& a, const T c)
 }
 
 template <class T, size_t N>
+void test_bounds(const Vector<T, N>& a, const Vector<T, N>& b, const T c)
+{
+	tester::section = "bounds";
+
+	const auto ab = bounds(a, b);
+	const auto ac = bounds(a, c);
+	const auto abc = bounds(a, b, c);
+
+	CHECK_EACH(min(ab) == uv::min(a, b));
+	CHECK_EACH(max(ab) == uv::max(a, b));
+
+	CHECK_EACH(min(ac) == uv::min(a, c));
+	CHECK_EACH(max(ac) == uv::max(a, c));
+
+	CHECK_EACH(min(abc) == uv::min(uv::min(a, b), c));
+	CHECK_EACH(max(abc) == uv::max(uv::max(a, b), c));
+}
+
+template <class T, size_t N>
 void test_matrix(const Vector<T, N>& a)
 {
 	static_assert(N == 4);
@@ -222,7 +240,7 @@ void test_rotate(const Vector<float, 4>&)
 	auto vd = decompose(v).direction;
 	auto R = rotate(ax, vd);
 	CHECK_APPROX(det(R) == 1);
-	CHECK_APPROX(*vd == R**ax);
+	CHECK_APPROX(vd == R*ax);
 
 	CHECK_EACH(cols(R) == cols(rotate(X, vd)));
 	CHECK_EACH_APPROX(cols(R) == cols(transpose(rotate(vd, X))));
@@ -249,12 +267,38 @@ void fuzz_vectors()
 		test_cross_product(a, b);
 		test_decomposition(a);
 		test_components(a, c);
+		test_bounds(a, b, c);
 		test_matrix(a);
 		test_quaternion(a);
 		test_rotate(a);
 	}
 }
 
+template <class T>
+void test_type_tests()
+{
+	static_assert(is_scalar_v<T> == true);
+	static_assert(is_scalar_v<const T&> == true);
+	static_assert(is_scalar_v<std::vector<T>> == false);
+	static_assert(is_vector_v<T> == false);
+	static_assert(is_matrix_v<T> == false);
+
+	using V = Vector<T, 3>;
+	static_assert(is_scalar_v<V> == false);
+	static_assert(is_vector_v<V> == true);
+	static_assert(is_vector_v<const V&> == true);
+	static_assert(is_vector_v<std::vector<V>> == false);
+	static_assert(is_matrix_v<V> == false);
+
+	using M = Matrix<T, 3, 3>;
+	static_assert(is_scalar_v<M> == false);
+	static_assert(is_vector_v<M> == false);
+	static_assert(is_matrix_v<M> == true);
+	static_assert(is_matrix_v<const M&> == true);
+	static_assert(is_matrix_v<std::vector<M>> == false);
+}
+
+//static_assert(!is_vector_v<units::Distance<float>>);
 
 TEST_CASE("uvector")
 {
@@ -271,7 +315,13 @@ TEST_CASE("uvector")
 	}
 
 	SUBCASE("float")
+	{
+		test_type_tests<float>();
 		fuzz_vectors<float>();
-	SUBCASE("unit::Distance<float>")
+	}
+	SUBCASE("Distance")
+	{
+		//test_type_tests<units::Distance<float>>();
 		fuzz_vectors<units::Distance<float>>();
+	}
 };

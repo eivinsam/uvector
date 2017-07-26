@@ -26,67 +26,24 @@ namespace uv
 	template <class A, class B>
 	auto distance(const A& a, const B& b) { return length(a - b); }
 
-	template <class T>
-	bool UnitLength<T>::_is_approx_unit_length()
-	{
-		using SQ = decltype(square(_value));
-		static constexpr auto above = SQ(1 + 1e-4f);
-		static constexpr auto below = SQ(1 / above);
-		const auto sq = square(_value);
-		return below < sq && sq < above;
-	}
-
-	template <class T>
-	std::ostream& operator<<(std::ostream& out, const UnitLength<T>& u)
-	{
-		return out << *u;
-	}
-
-	template <class T> UnitLength<T> operator-(const UnitLength<T>& a) { return UnitLength<T>::no_check(-*a); }
-	template <class T> auto square(const UnitLength<T>& a) { return type::of<op::mul<T>>(1); }
-	template <class T> auto length(const UnitLength<T>& a) { return T(1); }
-
-#pragma push_macro("DEFINE_OP")
-#define DEFINE_OP(op) template <class A, class B> auto operator##op(const UnitLength<A>& a, const UnitLength<B>& b) { return *a op *b; }
-
-	DEFINE_OP(+); DEFINE_OP(-); DEFINE_OP(*); DEFINE_OP(/);
-
-	DEFINE_OP(==); DEFINE_OP(!=); 
-	DEFINE_OP(< ); DEFINE_OP(<=);
-	DEFINE_OP(> ); DEFINE_OP(>=);
-
-#pragma pop_macro("DEFINE_OP")
-#pragma push_macro("DEFINE_OP")
-#define DEFINE_OP(op) template <class A, class B> auto operator##op(const UnitLength<A>& a, const B& b) { return *a op b; }
-
-	DEFINE_OP(+); DEFINE_OP(-); DEFINE_OP(*); DEFINE_OP(/);
-
-	DEFINE_OP(==); DEFINE_OP(!=);
-	DEFINE_OP(< ); DEFINE_OP(<=);
-	DEFINE_OP(> ); DEFINE_OP(>=);
-
-#pragma pop_macro("DEFINE_OP")
-#pragma push_macro("DEFINE_OP")
-#define DEFINE_OP(op) template <class A, class B> auto operator##op(const A& a, const UnitLength<B>& b) { return a op *b; }
-
-	DEFINE_OP(+); DEFINE_OP(-); DEFINE_OP(*); DEFINE_OP(/);
-
-	DEFINE_OP(==); DEFINE_OP(!=);
-	DEFINE_OP(< ); DEFINE_OP(<=);
-	DEFINE_OP(> ); DEFINE_OP(>=);
-
-#pragma pop_macro("DEFINE_OP")
-
-	template <class T>
-	auto decompose(const T& a) // decomposes vector into direction vector and scalar length
+	template <class T> // Decomposes vector into direction vector and scalar length
+	auto decompose(const T& a) 
 	{
 		const auto len = length(a);
-		using U = std::remove_const_t<std::remove_reference_t<decltype(a / len)>>;
 		struct result_t
 		{
-			UnitLength<U> direction;
+			std::decay_t<decltype(a / len)> direction;
 			decltype(len) length;
 		};
-		return result_t{ UnitLength<U>::no_check(a / len), len };
+		return result_t{ a / len, len };
+	}
+
+	template <class T> // Check if 'a' is of approximately unit magitude
+	bool nearUnit(const T& a)
+	{
+		using S = decltype(square(a));
+		static constexpr auto p = S(0.00001);
+		const auto d = square(a) - S(1);
+		return -p < d && d < p;
 	}
 }

@@ -3,14 +3,10 @@
 #include "transform.h"
 #include "matrix_operations.h"
 
-#pragma push_macro("TEMPLATE_TN")
-#define TEMPLATE_TN template <class T, size_t N>
 #pragma push_macro("TEMPLATE_ABN")
 #define TEMPLATE_ABN template <class A, class B, size_t N>
-#pragma push_macro("PNT_RESULT")
-#define PNT_RESULT(OP) Point<type::of<op::OP, A, B>, N>
-#pragma push_macro("DIR_RESULT")
-#define DIR_RESULT(OP) Vector<type::of<op::OP, A, B>, N>
+#pragma push_macro("TEMPLATE_ABNK")
+#define TEMPLATE_ABNK template <class A, class B, size_t N, int K>
 #pragma push_macro("MATRIX_N")
 #define MATRIX_N(T) Matrix<type::identity<T>, N, N>
 
@@ -19,40 +15,70 @@ namespace uv
 	template <class T, size_t N, int K> auto& point(      Vector<T, N, K>& d) { return reinterpret_cast<      Point<T, N, K>&>(d); }
 	template <class T, size_t N, int K> auto& point(const Vector<T, N, K>& d) { return reinterpret_cast<const Point<T, N, K>&>(d); }
 
-	TEMPLATE_ABN PNT_RESULT(add) operator+(const Point<A, N>& p, const Vector<B, N>& d) { return { p.v + d }; }
-	TEMPLATE_ABN PNT_RESULT(add) operator+(const Vector<A, N>& d, const Point<B, N>& p) { return { d + p.v }; }
+	template <class T, size_t N, int K> Point<T, N> operator+(const Vector<T, N, K>& v, Origo) { return point(v); }
+	template <class T, size_t N, int K> Point<T, N> operator+(Origo, const Vector<T, N, K>& v) { return point(v); }
 
-	TEMPLATE_ABN DIR_RESULT(sub) operator-(const Point<A, N>& a, const  Point<B, N>& b) { return { a.v - b.v }; }
-	TEMPLATE_ABN PNT_RESULT(sub) operator-(const Point<A, N>& a, const Vector<B, N>& b) { return { a.v - b }; }
+	template <class T, size_t N> Vector<T, N> operator-(const Point<T, N>& p, Origo) { return p.v; }
 
-	TEMPLATE_ABN auto dot(const Point<A, N>& a, const Vector<B, N>& b) { return dot(a.v, b); }
-	TEMPLATE_ABN auto dot(const Vector<A, N>& a, const Point<B, N>& b) { return dot(a, b.v); }
+	template <class A, class B, size_t NA, size_t NB, size_t NC, int KC>
+	auto ifelse(const Vector<bool, NC, KC>& cond, const Point<A, NA>& a, const Point<B, NB>& b)
+	{
+		static constexpr size_t N = require::equal<NC, require::equal<NA, NB>>;
+		Point<std::common_type_t<A, B>, N> result;
+		for (size_t i = 0; i < N; ++i)
+			result.v[i] = cond[i] ? a.v[i] : b.v[i];
+		return result;
+	}
+
+	TEMPLATE_ABNK auto operator+(const Point<A, N>& p, const Vector<B, N, K>& d) { return point(p.v + d); }
+	TEMPLATE_ABNK auto operator+(const Vector<A, N, K>& d, const Point<B, N>& p) { return point(d + p.v); }
+
+	TEMPLATE_ABN  auto operator-(const Point<A, N>& a, const  Point<B, N>&    b) { return a.v - b.v; }
+	TEMPLATE_ABNK auto operator-(const Point<A, N>& a, const Vector<B, N, K>& b) { return point(a.v - b); }
+
+	TEMPLATE_ABN auto operator+(const Point<A, N>& p, B s) { static_assert(is_scalar_v<B>); return point(p.v + s); }
+	TEMPLATE_ABN auto operator-(const Point<A, N>& p, B s) { static_assert(is_scalar_v<B>); return point(p.v - s); }
+	TEMPLATE_ABN auto operator+(B s, const Point<A, N>& p) { static_assert(is_scalar_v<B>); return point(s + p.v); }
+
+	TEMPLATE_ABN auto operator==(const Point<A, N>& a, const  Point<B, N>& b) { return a.v == b.v; }
+	TEMPLATE_ABN auto operator!=(const Point<A, N>& a, const  Point<B, N>& b) { return a.v != b.v; }
+	TEMPLATE_ABN auto operator< (const Point<A, N>& a, const  Point<B, N>& b) { return a.v <  b.v; }
+	TEMPLATE_ABN auto operator<=(const Point<A, N>& a, const  Point<B, N>& b) { return a.v <= b.v; }
+	TEMPLATE_ABN auto operator>=(const Point<A, N>& a, const  Point<B, N>& b) { return a.v >= b.v; }
+	TEMPLATE_ABN auto operator> (const Point<A, N>& a, const  Point<B, N>& b) { return a.v >  b.v; }
+
+	template <class T, size_t N> bool isfinite(const Point<T, N>& p) { return isfinite(p.v); }
+
+	TEMPLATE_ABNK auto dot(const Point<A, N>& a, const Vector<B, N, K>& b) { return dot(a.v, b); }
+	TEMPLATE_ABNK auto dot(const Vector<A, N, K>& a, const Point<B, N>& b) { return dot(a, b.v); }
 
 	TEMPLATE_ABN auto operator*(const Matrix<A, N, N>& Rs, const Point<B, N>& p) { return point(Rs * p.v); }
 
-	TEMPLATE_TN auto transform(const Vector<T, N>& t) { return Transform<T, N>{ 1, t }; }
-	TEMPLATE_TN auto transform(const MATRIX_N(T)& Rs) { return Transform<T, N>{ Rs, 0 }; }
-	TEMPLATE_TN auto transform(const MATRIX_N(T)& Rs, const Vector<T, N>& t) { return Transform<T, N>{ Rs, t }; }
+	template <class T, size_t N, int K> auto transform(const Vector<T, N, K>& t) { return Transform<T, N>{ 1, t }; }
+	template <class T, size_t N>        auto transform(const MATRIX_N(T)& Rs) { return Transform<T, N>{ Rs, 0 }; }
+	template <class T, size_t N, int K> auto transform(const MATRIX_N(T)& Rs, const Vector<T, N, K>& t) { return Transform<T, N>{ Rs, t }; }
 
-	TEMPLATE_ABN auto operator+(Transform<A, N> tf, const Vector<B, N>& t) { tf.t = tf.t + tf.Rs*t; return tf; }
-	TEMPLATE_ABN auto operator*(Transform<A, N> tf, const MATRIX_N(B)& Rs) { tf.Rs =        tf.Rs*Rs; return tf; }
+	TEMPLATE_ABNK auto operator+(Transform<A, N> tf, const Vector<B, N, K>& t)  { tf.t  = tf.t + tf.Rs*t;  return tf; }
+	TEMPLATE_ABN  auto operator*(Transform<A, N> tf, const Matrix<B, N, N>& Rs) { tf.Rs =        tf.Rs*Rs; return tf; }
 
-	TEMPLATE_ABN auto operator*(const Transform<A, N>& a,  const Transform<B, N>& b) { return { a.t + a.Rs*b.t, a.Rs * b.Rs }; }
-	TEMPLATE_ABN auto operator*(const Transform<A, N>& tf, const    Vector<B, N>& d) { return tf.Rs * d; }
-	TEMPLATE_ABN auto operator*(const Transform<A, N>& tf, const     Point<B, N>& p) { return tf.Rs * p + tf.t; }
+	TEMPLATE_ABN  auto operator*(const Transform<A, N>& a,  const Transform<B, N>&    b) { return { a.t + a.Rs*b.t, a.Rs * b.Rs }; }
+	TEMPLATE_ABNK auto operator*(const Transform<A, N>& tf, const    Vector<B, N, K>& d) { return tf.Rs * d; }
+	TEMPLATE_ABN  auto operator*(const Transform<A, N>& tf, const     Point<B, N>&    p) { return tf.Rs * p + tf.t; }
 
 
 	template <class A, class B, size_t N, size_t I>
 	auto operator*(const Transform<A, N>& tf, Component<B, I> c)        { return tf.Rs * c + tf.t; }
 
-	TEMPLATE_TN Transform<T, N> invert(Transform<T, N> tf)
+	template <class T, size_t N>
+	Transform<T, N> invert(Transform<T, N> tf)
 	{
 		tf.Rs = invert(tf.Rs);
 		tf.t = -(tf.Rs*tf.t);
 		return tf;
 	}
 
-	template <class T, size_t N> auto homogeneous(const Transform<T, N>& tf)
+	template <class T, size_t N> 
+	auto homogeneous(const Transform<T, N>& tf)
 	{
 		Matrix<T, N + 1, N + 1> result;
 		for (size_t i = 0; i < N; ++i)
@@ -65,11 +91,8 @@ namespace uv
 		rows(result)[N][N] = 1;
 		return result;
 	}
-
 }
 
-#pragma pop_macro("TEMPLATE_TN")
 #pragma pop_macro("TEMPLATE_ABN")
-#pragma pop_macro("PNT_RESULT")
-#pragma pop_macro("DIR_RESULT")
+#pragma pop_macro("TEMPLATE_ABNK")
 #pragma pop_macro("MATRIX_N")

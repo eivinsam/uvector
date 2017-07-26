@@ -9,18 +9,25 @@ namespace uv
 {
 	namespace details
 	{
+		template <class T>
+		static constexpr bool always_false = false;
+
+		template <class From, class To> struct CopyConstRef                 { using type =       To; };
+		template <class From, class To> struct CopyConstRef<const From, To> { using type = const typename CopyConstRef<From, To>::type; };
+		template <class From, class To> struct CopyConstRef<From&, To>      { using type = typename CopyConstRef<From, To>::type&; };
+		
+		template <class From, class To>
+		using copy_cr = typename CopyConstRef<From, To>::type;
+		
 		template <size_t A, size_t B>
-		struct equal_test { static_assert(A == B, "vectors must be of equal length"); };
+		struct is_equal
+		{
+			static_assert(A == B, "Vectors must be of equal length"); 
+			static constexpr size_t value = A;
+		};
+
 		template <size_t A, size_t B>
 		struct greater_test { static_assert(A > B, "vector too short"); };
-
-		template <class T>
-		struct dim_s;
-		template <class T, size_t N, int K>
-		struct dim_s<Vector<T, N, K>> { static constexpr size_t value = N; };
-		template <class T>
-		static constexpr auto dim = dim_s<std::remove_const_t<std::remove_reference_t<T>>>::value;
-
 
 		template <int...>
 		struct is_linear_s : public std::false_type { };
@@ -46,14 +53,7 @@ namespace uv
 			static constexpr int delta = Second - First;
 		};
 
-
-		template <class T, class = void>
-		struct is_vector_s : public std::false_type { };
-		template <class T>
-		struct is_vector_s<T, std::void_t<typename std::remove_reference_t<T>::scalar_type>> : public std::true_type { };
-		template <class T>
-		static constexpr bool is_vector = details::is_vector_s<T>::value;
-
+		
 		template <class T>
 		inline void assert_vector() { static_assert(is_vector<T>, "argument must be a vector"); }
 		template <class T>
@@ -64,66 +64,6 @@ namespace uv
 
 		template <typename... Rest>
 		inline constexpr int delta(size_t first, size_t second, Rest...) { return int(second) - int(first); }
-
-
-
-
-
-		template <class T>
-		struct scalar_of_s
-		{
-			static_assert(is_scalar_v<T>, "Expected a scalar or vector type");
-
-			using type = T;
-		};
-		template <class T, size_t N, int K>
-		struct scalar_of_s<Vector<T, N, K>> { using type = T; };
-
-		template <class T>
-		using scalar_of = typename scalar_of_s<T>::type;
-
-		template <class OP, class A, class B>
-		struct applier
-		{
-			static auto apply(A a, B b) { return OP{}(a, b); }
-		};
-		template <class OP, class A, class B, size_t NA, int KA>
-		struct applier<OP, VECTOR_A, B>
-		{
-			static auto apply(const VECTOR_A& a, B b)
-			{
-				Vector<type::of<OP, A, B>, NA> result;
-				for (size_t i = 0; i < NA; ++i)
-					result[i] = OP{}(a[i], b);
-				return result;
-			}
-		};
-		template <class OP, class A, class B, size_t NA, int KA>
-		struct applier<OP, B, VECTOR_A>
-		{
-			static auto apply(B b, const VECTOR_A& a)
-			{
-				Vector<type::of<OP, B, A>, NA> result;
-				for (size_t i = 0; i < NA; ++i)
-					result[i] = OP{}(b, a[i]);
-				return result;
-			}
-		};
-		template <class OP, class A, class B, size_t NA, size_t NB, int KA, int KB>
-		struct applier<OP, VECTOR_A, VECTOR_B>
-		{
-			static auto apply(const VECTOR_A& a, const VECTOR_B& b)
-			{
-				static_assert(NA == NB, "Vector-vector operation requires equal vector lengths");
-				Vector<type::of<OP, A, B>, NA> result;
-				for (size_t i = 0; i < NA; ++i)
-					result[i] = OP{}(a[i], b[i]);
-				return result;
-			}
-		};
-
-		template <class OP, class A, class B>
-		inline auto apply(const A& a, const B& b) { return applier<OP, A, B>::apply(a, b); }
 
 		template <class...>
 		struct element_count { static constexpr size_t value = 0; };
@@ -247,6 +187,61 @@ namespace uv
 		struct index_s<> { static constexpr size_t value = 0; };
 		template <size_t I0, size_t... I>
 		struct index_s<I0, I...> { static constexpr size_t value = (1 << I0) | index_s<I...>::value; };
+
+
+		template <size_t N>
+		struct cross_product { static_assert(N == 2 || N == 3, "Cross product only defined for two- and three-dimensional vectors"); };
+		template <>
+		struct cross_product<2>
+		{
+			template <class A, class B>
+			static auto of(const A& a, const B& b)
+			{
+				return a[0] * b[1] - a[1] * b[0];
+			}
+		};
+		template <>
+		struct cross_product<3>
+		{
+			template <class A, class B>
+			static auto of(const A& a, const B& b)
+			{
+				return vector(
+					a[1] * b[2] - a[2] * b[1],
+					a[2] * b[0] - a[0] * b[2],
+					a[0] * b[1] - a[1] * b[0]);
+			}
+		};
+
+		template <class OP, class A, class B>
+		auto vector_apply(const A& a, const B& b)
+		{
+			static constexpr auto N = require::equal<dim<A>, dim<B>>;
+			OP op;
+			Vector<type::of<OP, scalar<A>, scalar<B>>, N> result;
+			for (size_t i = 0; i < N; ++i)
+				result[i] = op(a[i], b[i]);
+			return result;
+		}
+		template <class OP, class V, class S>
+		auto scalar_apply(const V& v, S s)
+		{
+			static constexpr auto N = dim<V>;
+			OP op;
+			Vector<type::of<OP, scalar<V>, S>, N> result;
+			for (size_t i = 0; i < N; ++i)
+				result[i] = op(v[i], s);
+			return result;
+		}
+
+		template <class T>
+		struct vector_and
+		{
+			static_assert(is_scalar_v<T>, "Vector operation not specialized for type");
+			
+			template <class OP, class V>
+			static auto apply(const V& v, T s) { return scalar_apply<OP>(v, s); }
+		};
 	}
 }
 #undef VECTOR_A

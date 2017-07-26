@@ -121,16 +121,16 @@ namespace uv
 		return result;
 	}
 
-	template <class A, size_t R, size_t C, size_t I>
-	auto& operator*(const Matrix<A, R, C>& m, Axes<I>)
+	template <class M, size_t I, class = if_matrix_t<M>>
+	auto& operator*(M&& m, Axes<I>)
 	{
-		static_assert(I < C, "Axis index must be smaller than matrix column count");
+		static_assert(I < dim<M>.C, "Axis index must be smaller than matrix column count");
 		return cols(m)[I];
 	}
-	template <class A, size_t R, size_t C, size_t I>
-	auto& operator*(Axes<I>, const Matrix<A, R, C>& m)
+	template <class M, size_t I, class = if_matrix_t<M>>
+	auto& operator*(Axes<I>, M&& m)
 	{
-		static_assert(I < R, "Axis index must be smaller than matrix row count");
+		static_assert(I < dim<M>.R, "Axis index must be smaller than matrix row count");
 		return rows(m)[I];
 	}
 
@@ -148,26 +148,29 @@ namespace uv
 		return (*c) * rows(m)[IB];
 	}
 
-	template <class A, class B, size_t RA, size_t CA, class = if_scalar_t<B>>
+	template <class A, class B, size_t RA, size_t CA>
 	auto operator*(const Matrix<A, RA, CA>& m, B c)
 	{
+		static_assert(is_scalar_v<B>, "No overload matches the type right-multiplied with matrix");
 		Matrix<type::of<op::mul, A, B>, RA, CA> result;
 		for (size_t i = 0; i < RA; ++i)
 			rows(result)[i] = rows(m)[i] * c;
 		return result;
 	}
-	template <class A, class B, size_t RA, size_t CA, class = if_scalar_t<B>>
+	template <class A, class B, size_t RA, size_t CA>
 	auto operator*(B c, const Matrix<A, RA, CA>& m)
 	{
+		static_assert(is_scalar_v<B>, "No overload matches the type left-multiplied with matrix");
 		Matrix<type::of<op::mul, B, A>, RA, CA> result;
 		for (size_t i = 0; i < RA; ++i)
 			rows(result)[i] = c * rows(m)[i];
 		return result;
 	}
 
-	template <class A, class B, size_t RA, size_t CA, class = if_scalar_t<B>>
+	template <class A, class B, size_t RA, size_t CA>
 	auto operator/(const Matrix<A, RA, CA>& m, B c)
 	{
+		static_assert(is_scalar_v<B>, "Matrices can only be divided by scalars");
 		Matrix<type::of<op::div, A, B>, RA, CA> result;
 		for (size_t i = 0; i < RA; ++i)
 			rows(result)[i] = rows(m)[i] / c;
@@ -175,61 +178,23 @@ namespace uv
 	}
 
 	template <class A, class B, int KA, int KB>
-	auto rotate(const UnitVector<A, 3, KA>& from, const UnitVector<B, 3, KB>& to)
+	auto rotate(const Vector<A, 3, KA>& from, const Vector<B, 3, KB>& to)
 	{
-		using namespace axes;
-		using T = typename decltype(cross(*from, *to))::scalar_type;
-		Matrix<T, 3, 3> result(1);
-		if (square(*from - *to) < 0.00001f)
-			return result;
-
-		auto v = cross(*from, *to);
-		auto coef = (1 - dot(*from, *to)) / square(v);
-		auto sscv = cols(
-			vector<T>(0,  v*Z, -v*Y),
-			vector<T>(-v*Z, 0,  v*X),
-			vector<T>(v*Y, -v*X, 0));
-
-		result = result + sscv + (sscv*sscv)*coef;
-		return result;
+		Expects(nearUnit(from));
+		Expects(nearUnit(to));
+		return details::rotate(from, to);
 	}
 	template <class A, int KA, size_t I>
-	auto rotate(Axes<I> from, const UnitVector<A, 3, KA>& to)
+	auto rotate(Axes<I> from, const Vector<A, 3, KA>& to)
 	{
-		using namespace axes;
-		using T = typename decltype(cross(from, *to))::scalar_type;
-		Matrix<T, 3, 3> result(1);
-		if (square(1*from - *to) < 0.00001f)
-			return result;
-
-		auto v = cross(from, *to);
-		auto coef = (1 - dot(from, *to)) / square(v);
-		auto sscv = cols(
-			vector<T>(0, v*Z, -v*Y),
-			vector<T>(-v*Z, 0, v*X),
-			vector<T>(v*Y, -v*X, 0));
-
-		result = result + sscv + (sscv*sscv)*coef;
-		return result;
+		Expects(nearUnit(to));
+		return details::rotate(from, to);
 	}
 	template <class A, int KA, size_t I>
-	auto rotate(const UnitVector<A, 3, KA>& from, Axes<I> to)
+	auto rotate(const Vector<A, 3, KA>& from, Axes<I> to)
 	{
-		using namespace axes;
-		using T = typename decltype(cross(*from, to))::scalar_type;
-		Matrix<T, 3, 3> result(1);
-		if (square(*from - 1*to) < 0.00001f)
-			return result;
-
-		auto v = cross(*from, to);
-		auto coef = (1 - dot(*from, to)) / square(v);
-		auto sscv = cols(
-			vector<T>(0, v*Z, -v*Y),
-			vector<T>(-v*Z, 0, v*X),
-			vector<T>(v*Y, -v*X, 0));
-
-		result = result + sscv + (sscv*sscv)*coef;
-		return result;
+		Expects(nearUnit(from));
+		return details::rotate(from, to);
 	}
 }
 

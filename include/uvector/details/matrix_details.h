@@ -78,5 +78,25 @@ namespace uv
 				) / det(m);
 			}
 		};
+
+		template <class A, class B>
+		auto rotate(const A& from, const B& to)
+		{
+			using namespace axes;
+			using T = typename decltype(cross(from, to))::scalar_type;
+			Matrix<T, 3, 3> result(1);
+			if (square(from - to) < 0.00001f)
+				return result;
+
+			auto v = cross(from, to);
+			auto coef = (1 - dot(from, to)) / square(v);
+			auto sscv = cols(
+				vector<T>(0, v*Z, -v*Y),
+				vector<T>(-v*Z, 0, v*X),
+				vector<T>(v*Y, -v*X, 0));
+
+			result = result + sscv + (sscv*sscv)*coef;
+			return result;
+		}
 	}
 }

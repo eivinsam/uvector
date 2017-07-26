@@ -10,14 +10,30 @@
 
 namespace uv
 {
+	template <class T> struct is_vector : std::false_type { };
+	template <class T> struct is_vector<T&> : is_vector<T> { };
+	template <class T> struct is_vector<const T> : is_vector<T> { };
+	template <class T> static constexpr bool is_vector_v = is_vector<T>::value;
+
+	template <class T, class R = void> struct if_vector : std::enable_if<is_vector_v<T>, R> { };
+	template <class T, class R = void> using if_vector_t = typename if_vector<T, R>::type;
+
 	template <class T, size_t N, int K>
 	class Vector;
+
+	template <class T, size_t N, int K> struct is_vector<Vector<T, N, K>> : std::true_type { };
 
 	template <size_t... I>
 	struct Axes { };
 
 	template <size_t... IA, size_t... IB>
 	constexpr Axes<IA..., IB...> operator+(Axes<IA...>, Axes<IB...>) { return {}; }
+
+	namespace details
+	{
+		template <size_t... I>
+		struct Dim<Axes<I...>> : std::integral_constant<size_t, sizeof...(I)> { };
+	}
 
 	namespace axes
 	{
@@ -85,6 +101,9 @@ namespace uv
 			stride_iterator& operator+=(ptrdiff_t n) { _ptr += K*n; return *this; }
 			stride_iterator& operator-=(ptrdiff_t n) { _ptr -= K*n; return *this; }
 
+			stride_iterator operator+(ptrdiff_t n) { stride_iterator result(*this); result += n; return result; }
+			stride_iterator operator-(ptrdiff_t n) { stride_iterator result(*this); result -= n; return result; }
+
 			ptrdiff_t operator-(const stride_iterator& other) const { return (_ptr - other._ptr) / K; }
 
 			reference operator[](ptrdiff_t n) const { return _ptr[n*K]; }
@@ -126,6 +145,9 @@ namespace uv
 			repeat_iterator& operator+=(ptrdiff_t n) { _i += n; return *this; }
 			repeat_iterator& operator-=(ptrdiff_t n) { _i -= n; return *this; }
 
+			repeat_iterator operator+(ptrdiff_t n) { repeat_iterator result(*this); result += n; return result; }
+			repeat_iterator operator-(ptrdiff_t n) { repeat_iterator result(*this); result -= n; return result; }
+
 			ptrdiff_t operator-(const repeat_iterator& other) const { return _i - other._i; }
 
 			reference operator[](ptrdiff_t) const { return *_ptr; }
@@ -141,34 +163,15 @@ namespace uv
 			bool operator> (const repeat_iterator& other) const { return _i > other._i; }
 		};
 
-		template <class C, size_t N>
-		class indexable_from_begin
-		{
-			      C* self()       { return reinterpret_cast<C*>(this); }
-			const C* self() const { return reinterpret_cast<const C*>(this); }
-		public:
-
-			auto end()       { return self()->begin() + N; }
-			auto end() const { return self()->begin() + N; }
-
-			auto& at(size_t i)       { if (i >= N) throw std::out_of_range("strided vector element out of range"); return self()->begin()[i]; }
-			auto& at(size_t i) const { if (i >= N) throw std::out_of_range("strided vector element out of range"); return self()->begin()[i]; }
-			auto& operator[](size_t i)       { return self()->begin()[i]; }
-			auto& operator[](size_t i) const { return self()->begin()[i]; }
-		};
-		template <class T, size_t N, int K>
-		class indexable_from_begin_vec : public indexable_from_begin<Vector<T, N, K>, N> { };
 	}
 
 	template <class T, size_t N, int K = 1>
-	class Vector : public details::indexable_from_begin_vec<T,N,K>
+	class Vector
 	{
 		T _first;
 	public:
 		static_assert(is_scalar_v<T>, "T must be a scalar type");
 		static_assert(N > 1, "vectors must have at least two dimensions");
-
-		using details::indexable_from_begin_vec<T, N, K>::operator[];
 
 		using size_type = size_t;
 		using       iterator = details::stride_iterator<T, K>;
@@ -179,6 +182,8 @@ namespace uv
 		using value_type = T;
 		using scalar_type = T;
 
+		static constexpr size_t dim = N;
+
 		Vector() = delete;
 		Vector(const Vector&) = delete;
 
@@ -186,8 +191,13 @@ namespace uv
 		Vector& operator=(const Vector<T, N, KB>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = other[i]; return *this; }
 		Vector& operator=(T value)                       { for (size_t i = 0; i < N; ++i) (*this)[i] = value;    return *this; }
 
-		auto begin()       { return       iterator{ reinterpret_cast<      T*>(this) }; }
-		auto begin() const { return const_iterator{ reinterpret_cast<const T*>(this) }; }
+		auto begin()       { return       iterator{ &_first }; }
+		auto begin() const { return const_iterator{ &_first }; }
+		auto end()       { return begin() += N; }
+		auto end() const { return begin() += N; }
+
+		auto& operator[](size_t i)       { return begin()[i]; }
+		auto& operator[](size_t i) const { return begin()[i]; }
 
 		constexpr size_t size() const { return N; }
 
@@ -195,7 +205,7 @@ namespace uv
 	};
 
 	template <class T, size_t N>
-	class Vector<T, N, 0> : public details::indexable_from_begin_vec<T, N, 0>
+	class Vector<T, N, 0>
 	{
 		T _value;
 	public:
@@ -211,6 +221,8 @@ namespace uv
 		using value_type = T;
 		using scalar_type = T;
 
+		static constexpr size_t dim = N;
+
 		Vector() { }
 		constexpr Vector(const Vector&) = default;
 		constexpr Vector(T value) : _value(value) { }
@@ -218,19 +230,27 @@ namespace uv
 		constexpr Vector& operator=(const Vector& other) = default;
 		constexpr Vector& operator=(T value) { _value = value; }
 
-		auto begin()       { return       iterator{ reinterpret_cast<      T*>(this) }; }
-		auto begin() const { return const_iterator{ reinterpret_cast<const T*>(this) }; }
+		auto begin()       { return       iterator{ &_value }; }
+		auto begin() const { return const_iterator{ &_value }; }
+
+		auto end()       { return begin() += N; }
+		auto end() const { return begin() += N; }
+
+		auto& operator[](size_t)       { return _value; }
+		auto& operator[](size_t) const { return _value; }
 
 		constexpr size_t size() const { return N; }
 
 		explicit constexpr operator bool() const { return bool(_value); }
 	};
 
+
 	template <class T, size_t N>
 	class Vector<T, N, 1> : public std::array<T, N>
 	{
 	public:
 		using scalar_type = T;
+		static constexpr size_t dim = N;
 
 		static_assert(is_scalar_v<T>, "T must be a scalar type");
 		static_assert(N > 1, "vectors must have at least two dimensions");
@@ -261,9 +281,6 @@ namespace uv
 		explicit operator bool() const { for (size_t i = 0; i < N; ++i) if (!(*this)[i]) return false; return true; }
 	};
 
-	template <class T, size_t N, int K = 1>
-	using UnitVector = UnitLength<Vector<T, N, K>>;
-
 	using bool2 = Vector<bool, 2>;
 	using bool3 = Vector<bool, 3>;
 	using bool4 = Vector<bool, 4>;
@@ -277,8 +294,3 @@ namespace uv
 	using double4 = Vector<double, 4>;
 }
 
-#define UVECTOR_VECTOR_DEFINED
-
-#ifdef UVECTOR_BOUNDS_DEFINED
-#include "cross/vector_bounds.h"
-#endif

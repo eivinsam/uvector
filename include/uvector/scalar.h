@@ -12,15 +12,45 @@ namespace uv
 	static constexpr auto inff = std::numeric_limits<float> ::infinity();
 	static constexpr auto infd = std::numeric_limits<double>::infinity();
 
-	template <class T>
-	struct is_scalar : public std::is_arithmetic<T> { };
-	template <class T>
-	static constexpr bool is_scalar_v = is_scalar<T>::value;
+	template <class T> struct is_scalar : std::is_arithmetic<T> { };
+	template <class T> struct is_scalar<T&> : is_scalar<T> { };
+	template <class T> struct is_scalar<const T> : is_scalar<T> { };
+	template <class T> static constexpr bool is_scalar_v = is_scalar<T>::value;
 
 	template <class T, class R = void>
 	struct if_scalar : public std::enable_if<is_scalar_v<T>, R> { };
 	template <class T, class R = void>
 	using if_scalar_t = typename if_scalar<T, R>::type;
+
+	namespace details
+	{
+		template <class T>
+		struct Scalar
+		{
+			using clean_T = std::decay_t<T>;
+			template <class S = typename clean_T::scalar_type>
+			static S test(int);
+			template <class = if_scalar_t<clean_T>>
+			static clean_T test(int);
+
+			using type = decltype(test(0));
+		};
+
+		template <class T, class = void>
+		struct Dim : std::integral_constant<size_t, 1>
+		{
+			static_assert(is_scalar_v<T>, "Type is not a scalar and has no static member dim");
+		};
+		template <class T>
+		struct Dim<T, std::void_t<decltype(std::decay_t<T>::dim)>>
+		{
+			static constexpr auto value = std::decay_t<T>::dim;
+		};
+	}
+	template <class T>
+	using scalar = typename details::Scalar<T>::type;
+	template <class T>
+	static constexpr auto dim = details::Dim<T>::value;
 
 	namespace op
 	{
@@ -38,6 +68,10 @@ namespace uv
 
 		struct min { template <class A, class B> auto operator()(const A& a, const B& b) { return a <= b ? a : b; } };
 		struct max { template <class A, class B> auto operator()(const A& a, const B& b) { return a >= b ? a : b; } };
+
+
+		template <class OP>
+		struct rev { template <class A, class B> auto operator()(const A& a, const B& b) { return OP{}(b, a); } }; // Reverse argument order
 	}
 
 	namespace type
@@ -50,27 +84,4 @@ namespace uv
 		template <class T>
 		using identity = of<op::div, T, T>;
 	}
-
-	template <class T>
-	class UnitLength
-	{
-		T _value;
-
-		bool _is_approx_unit_length();
-	public:
-		UnitLength() = default;
-		UnitLength(const T& value) : _value(value) { Expects(_is_approx_unit_length()); }
-
-		static UnitLength no_check(const T& value) { return reinterpret_cast<const UnitLength&>(value); }
-
-		const T* operator->() const { return &_value; }
-		const T& operator* () const { return _value; }
-
-		template <class = std::void_t<decltype(_value[0])>>
-		const auto& operator[](size_t i) const { return _value[i]; }
-
-		template <class = std::void_t<decltype(std::begin(_value))>> auto begin() const { return std::begin(_value); }
-		template <class = std::void_t<decltype(std::end(_value))>> auto end()   const { return std::end(_value); }
-	};
-
 }

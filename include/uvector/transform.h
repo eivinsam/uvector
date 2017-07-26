@@ -11,6 +11,9 @@ namespace uv
 	class Point
 	{
 	public:
+		using scalar_type = T;
+		static constexpr size_t dim = N;
+
 		Vector<T, N, K> v;
 
 		Point() { }
@@ -19,7 +22,6 @@ namespace uv
 		Point(const Vector<T, N, KB>& a) : v(a) { }
 
 		Point& operator=(Origo)                 { v = T(0); return *this; }
-		Point& operator=(const Vector<T, N>& a) { v = a;    return *this; }
 	};
 	using Point2f = Point<float, 2>;
 	using Point3f = Point<float, 3>;

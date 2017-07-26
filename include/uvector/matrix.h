@@ -10,10 +10,14 @@ namespace uv
 	public:
 		using Row    = Vector<T, C, 1>;
 		using Column = Vector<T, R, C>;
+		static_assert(sizeof(Column) == sizeof(T));
 	private:
 		static constexpr size_t D = R < C ? R : C; // diagonal length
 		std::array<Row, R> _rows;
 	public:
+		using scalar_type = T;
+		static constexpr struct { size_t R, C; } dim = { R, C };
+
 		Matrix() { }
 		Matrix(T diagonal) { *this = diagonal; }
 		template <int K>
@@ -39,7 +43,32 @@ namespace uv
 		auto data() const { return reinterpret_cast<const T*>(this); }
 
 		explicit operator bool() const { for (size_t i = 0; i < R; ++i) if (!_rows[i]) return false; return true; }
+
 	};
+
+	template <class T> struct is_matrix : std::false_type { };
+	template <class T> struct is_matrix<const T> : is_matrix<T> { };
+	template <class T> struct is_matrix<T&>      : is_matrix<T> { };
+	template <class T> 
+	static constexpr bool is_matrix_v = is_matrix<T>::value;
+
+	template <class T, size_t R, size_t C> 
+	struct is_matrix<Matrix<T, R, C>> : std::true_type { };
+
+	template <class T, class R = void> struct if_matrix : std::enable_if<is_matrix_v<T>, R> { };
+	template <class T, class R = void> using if_matrix_t = typename if_matrix<T, R>::type;
+
+	template <class T> struct Row { };
+	template <class T> struct Row<const T> : Row<T> { };
+	template <class T> struct Row<T&>      : Row<T> { };
+	template <class T> using row = typename Row<T>::type;
+	template <class T> struct Column { };
+	template <class T> struct Column<const T> : Column<T> { };
+	template <class T> struct Column<T&>      : Column<T> { };
+	template <class T> using column = typename Column<T>::type;
+
+	template <class T, size_t R, size_t C> struct    Row<Matrix<T, R, C>> { using type = typename Matrix<T, R, C>::Row; };
+	template <class T, size_t R, size_t C> struct Column<Matrix<T, R, C>> { using type = typename Matrix<T, R, C>::Column; };
 
 	template <class T, size_t R, size_t C> auto& diagonal(      Matrix<T, R, C>& m) { return reinterpret_cast<      Vector<T, std::min(R, C), C+1>&>(m); }
 	template <class T, size_t R, size_t C> auto& diagonal(const Matrix<T, R, C>& m) { return reinterpret_cast<const Vector<T, std::min(R, C), C+1>&>(m); }
@@ -60,10 +89,8 @@ namespace uv
 		auto& operator[](size_t i) const { return _data[i]; }
 	};
 
-	template <class T, size_t R, size_t C> auto& rows(      Matrix<T, R, C>& a) { return reinterpret_cast<      MatrixView<typename Matrix<T, R, C>::Row, R>&>(a); }
-	template <class T, size_t R, size_t C> auto& rows(const Matrix<T, R, C>& a) { return reinterpret_cast<const MatrixView<typename Matrix<T, R, C>::Row, R>&>(a); }
-	template <class T, size_t R, size_t C> auto& cols(      Matrix<T, R, C>& a) { return reinterpret_cast<      MatrixView<typename Matrix<T, R, C>::Column, C>&>(a); }
-	template <class T, size_t R, size_t C> auto& cols(const Matrix<T, R, C>& a) { return reinterpret_cast<const MatrixView<typename Matrix<T, R, C>::Column, C>&>(a); }
+	template <class M, class = if_matrix_t<M>> auto& rows(M&& m) { return reinterpret_cast<details::copy_cr<M, MatrixView<   row<M>, dim<M>.R>>&>(m); }
+	template <class M, class = if_matrix_t<M>> auto& cols(M&& m) { return reinterpret_cast<details::copy_cr<M, MatrixView<column<M>, dim<M>.C>>&>(m); }
 
 	using float22 = Matrix<float, 2, 2>;
 	using float33 = Matrix<float, 3, 3>;
