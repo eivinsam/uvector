@@ -85,8 +85,8 @@ namespace uv
 
 		constexpr size_t size() const { return M; }
 
-		auto& operator[](size_t i) { return _data[i]; }
-		auto& operator[](size_t i) const { return _data[i]; }
+		      V& operator[](size_t i)       { return _data[i]; }
+		const V& operator[](size_t i) const { return _data[i]; }
 	};
 
 	template <class M, class = if_matrix_t<M>> auto& rows(M&& m) { return reinterpret_cast<details::copy_cr<M, MatrixView<   row<M>, dim<M>.R>>&>(m); }

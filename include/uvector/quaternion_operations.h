@@ -105,7 +105,7 @@ namespace uv
 		static_assert(I < 3, "Invalid axis");
 		static constexpr size_t II = (I + 1) % 3;
 		static constexpr size_t III = (I + 2) % 3;
-		Vector<type::inner_product<T>, 3> result;
+		Vector<type::dot<T>, 3> result;
 		auto& re = real(q);
 		auto& im = imag(q);
 		result[I] = square(re) + square(im[I]) - square(im[II]) - square(im[III]);

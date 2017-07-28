@@ -26,7 +26,7 @@ namespace uv
 	auto ifelse(const Vector<bool, NC, KC>& cond, const VECTOR_A& a, const VECTOR_B& b)
 	{
 		static constexpr size_t N = require::equal<NC, require::equal<NA, NB>>;
-		Vector<std::common_type_t<A, B>, N> result;
+		Vector<type::common<A, B>, N> result;
 		for (size_t i = 0; i < N; ++i)
 			result[i] = cond[i] ? a[i] : b[i];
 		return result;
@@ -36,7 +36,7 @@ namespace uv
 	{
 		static_assert(is_scalar_v<B>);
 		static constexpr size_t N = require::equal<NA, NC>;
-		Vector<std::common_type_t<A, B>, N> result;
+		Vector<type::common<A, B>, N> result;
 		for (size_t i = 0; i < N; ++i)
 			result[i] = cond[i] ? a[i] : b;
 		return result;
@@ -46,7 +46,7 @@ namespace uv
 	{
 		static_assert(is_scalar_v<A>);
 		static constexpr size_t N = require::equal<NB, NC>;
-		Vector<std::common_type_t<A, B>, N> result;
+		Vector<type::common<A, B>, N> result;
 		for (size_t i = 0; i < N; ++i)
 			result[i] = cond[i] ? a : b[i];
 		return result;
@@ -57,7 +57,7 @@ namespace uv
 		static_assert(is_scalar_v<A>);
 		static_assert(is_scalar_v<B>);
 		static constexpr size_t N = NC;
-		Vector<std::common_type_t<A, B>, N> result;
+		Vector<type::common<A, B>, N> result;
 		for (size_t i = 0; i < N; ++i)
 			result[i] = cond[i] ? a : b;
 		return result;
@@ -66,13 +66,13 @@ namespace uv
 	template <size_t... Indices, class V>
 	auto&& select(V&& source) { return details::selector<Indices...>::on(source); }
 
-	template <class T, size_t I, class = if_scalar_t<T>> auto operator*(Axes<I>, T value) { return Component<T, I>(value); }
-	template <class T, size_t I, class = if_scalar_t<T>> auto operator*(T value, Axes<I>) { return Component<T, I>(value); }
+	template <class T, size_t I, class = if_scalar_t<T>> Component<T, I> operator*(Axes<I>, T value) { return Component<T, I>(value); }
+	template <class T, size_t I, class = if_scalar_t<T>> Component<T, I> operator*(T value, Axes<I>) { return Component<T, I>(value); }
 
-	template <class T, size_t N, int K, size_t I> auto& operator*(      Vector<T, N, K>& v, Axes<I>) { return v[I]; }
-	template <class T, size_t N, int K, size_t I> auto& operator*(const Vector<T, N, K>& v, Axes<I>) { return v[I]; }
-	template <class T, size_t N, int K, size_t I> auto& operator*(Axes<I>,       Vector<T, N, K>& v) { return v[I]; }
-	template <class T, size_t N, int K, size_t I> auto& operator*(Axes<I>, const Vector<T, N, K>& v) { return v[I]; }
+	template <class T, size_t N, int K, size_t I>       T& operator*(      Vector<T, N, K>& v, Axes<I>) { return v[I]; }
+	template <class T, size_t N, int K, size_t I> const T& operator*(const Vector<T, N, K>& v, Axes<I>) { return v[I]; }
+	template <class T, size_t N, int K, size_t I>       T& operator*(Axes<I>,       Vector<T, N, K>& v) { return v[I]; }
+	template <class T, size_t N, int K, size_t I> const T& operator*(Axes<I>, const Vector<T, N, K>& v) { return v[I]; }
 
 	template <class T, size_t N, int K, size_t... I> auto& operator*(      Vector<T, N, K>& v, Axes<I...>) { return select<I...>(v); }
 	template <class T, size_t N, int K, size_t... I> auto& operator*(const Vector<T, N, K>& v, Axes<I...>) { return select<I...>(v); }
@@ -139,9 +139,6 @@ namespace uv
 	bool operator==(Component<A, I> a, B b) { return a.value == b; }
 
 
-	template <class T, size_t N> auto data(      Vector<T, N>& v) { return v.begin(); }
-	template <class T, size_t N> auto data(const Vector<T, N>& v) { return v.begin(); }
-
 	template <class A, size_t NA, int KA> auto& rest(      VECTOR_A& v) { return reinterpret_cast<      Vector<A, NA-1, KA>&>(v[1]); }
 	template <class A, size_t NA, int KA> auto& rest(const VECTOR_A& v) { return reinterpret_cast<const Vector<A, NA-1, KA>&>(v[1]); }
 
@@ -149,29 +146,34 @@ namespace uv
 	bool any(const Vector<bool, 2, K>& v) { return v[0] | v[1]; }
 	template <size_t N, int K>
 	bool any(const Vector<bool, N, K>& v) { return v[0] | any(rest(v)); }
+
 	template <int K>
 	bool all(const Vector<bool, 2, K>& v) { return v[0] & v[1]; }
 	template <size_t N, int K>
 	bool all(const Vector<bool, N, K>& v) { return v[0] & all(rest(v)); }
+
 	template <class T, int K>
-	auto sum(const Vector<T, 2, K>& v) { return v[0] + v[1]; }
+	type::add<T> sum(const Vector<T, 2, K>& v) { return v[0] + v[1]; }
 	template <class T, size_t N, int K>
 	auto sum(const Vector<T, N, K>& v) { return v[0] + sum(rest(v)); }
+
 	template <class T, int K>
-	auto product(const Vector<T, 2, K>& v) { return v[0] * v[1]; }
+	type::mul<T> product(const Vector<T, 2, K>& v) { return v[0] * v[1]; }
 	template <class T, size_t N, int K>
 	auto product(const Vector<T, N, K>& v) { return v[0] * product(rest(v)); }
+
 	template <class T, int K>
-	auto min(const Vector<T, 2, K>& v) { return op::min{}(v[0], v[1]); }
+	T min(const Vector<T, 2, K>& v) { return op::min{}(v[0], v[1]); }
 	template <class T, size_t N, int K>
-	auto min(const Vector<T, N, K>& v) { return op::min{}(v[0], min(rest(v))); }
+	T min(const Vector<T, N, K>& v) { return op::min{}(v[0], min(rest(v))); }
+
 	template <class T, int K>
-	auto max(const Vector<T, 2, K>& v) { return op::max{}(v[0], v[1]); }
+	T max(const Vector<T, 2, K>& v) { return op::max{}(v[0], v[1]); }
 	template <class T, size_t N, int K>
-	auto max(const Vector<T, N, K>& v) { return op::max{}(v[0], max(rest(v))); }
+	T max(const Vector<T, N, K>& v) { return op::max{}(v[0], max(rest(v))); }
 
 	template <class A, size_t NA, int KA>
-	auto differences(const VECTOR_A& a)
+	Vector<type::sub<A>, NA - 1> differences(const VECTOR_A& a)
 	{
 		Vector<type::sub<A>, NA - 1> result;
 		for (size_t i = 0; i < NA - 1; ++i)
@@ -179,36 +181,36 @@ namespace uv
 		return result;
 	}
 
-	template <size_t N, int K> inline auto operator!(const Vector<bool, N, K>& a) { Vector<bool, N> r; for (size_t i = 0; i < N; ++i) r[i] = !a[i]; return r; }
+	template <size_t N, int K> inline Vector<bool, N> operator!(const Vector<bool, N, K>& a) { Vector<bool, N> r; for (size_t i = 0; i < N; ++i) r[i] = !a[i]; return r; }
 
-	TEMPLATE_VECTOR_A inline auto operator-(const VECTOR_A& a) { Vector<A, NA> r; for (size_t i = 0; i < NA; ++i) r[i] = -a[i]; return r; }
+	TEMPLATE_VECTOR_A inline Vector<A, NA> operator-(const VECTOR_A& a) { Vector<A, NA> r; for (size_t i = 0; i < NA; ++i) r[i] = -a[i]; return r; }
 
-	TEMPLATE_VECTORS_AB	inline auto operator==(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::eq>(a, b); }
-	TEMPLATE_VECTORS_AB	inline auto operator!=(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::ne>(a, b); }
-	TEMPLATE_VECTORS_AB	inline auto operator< (const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::sl>(a, b); }
-	TEMPLATE_VECTORS_AB	inline auto operator<=(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::le>(a, b); }
-	TEMPLATE_VECTORS_AB	inline auto operator>=(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::ge>(a, b); }
-	TEMPLATE_VECTORS_AB	inline auto operator> (const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::sg>(a, b); }
+	TEMPLATE_VECTORS_AB	inline Vector<bool, NA> operator==(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::eq>(a, b); }
+	TEMPLATE_VECTORS_AB	inline Vector<bool, NA> operator!=(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::ne>(a, b); }
+	TEMPLATE_VECTORS_AB	inline Vector<bool, NA> operator< (const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::sl>(a, b); }
+	TEMPLATE_VECTORS_AB	inline Vector<bool, NA> operator<=(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::le>(a, b); }
+	TEMPLATE_VECTORS_AB	inline Vector<bool, NA> operator>=(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::ge>(a, b); }
+	TEMPLATE_VECTORS_AB	inline Vector<bool, NA> operator> (const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::sg>(a, b); }
 
-	TEMPLATE_VECTORS_AB	inline auto operator+(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::add>(a, b); }
-	TEMPLATE_VECTORS_AB inline auto operator-(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::sub>(a, b); }
-	TEMPLATE_VECTORS_AB inline auto operator*(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::mul>(a, b); }
+	TEMPLATE_VECTORS_AB	inline Vector<type::add<A, B>, NA> operator+(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::add>(a, b); }
+	TEMPLATE_VECTORS_AB inline Vector<type::sub<A, B>, NA> operator-(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::sub>(a, b); }
+	TEMPLATE_VECTORS_AB inline Vector<type::mul<A, B>, NA> operator*(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::mul>(a, b); }
 
-	TEMPLATE_VECTORS_AB inline auto min(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::min>(a, b); }
-	TEMPLATE_VECTORS_AB inline auto max(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::max>(a, b); }
+	TEMPLATE_VECTORS_AB inline Vector<type::common<A, B>, NA> min(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::min>(a, b); }
+	TEMPLATE_VECTORS_AB inline Vector<type::common<A, B>, NA> max(const VECTOR_A& a, const VECTOR_B& b) { return details::vector_apply<op::max>(a, b); }
 
-	TEMPLATE_VECTOR_A_OTHER_B auto operator==(const VECTOR_A& a, const B& b) { return details::vector_and<B>::apply<op::eq>(a, b); }
-	TEMPLATE_VECTOR_A_OTHER_B auto operator!=(const VECTOR_A& a, const B& b) { return details::vector_and<B>::apply<op::ne>(a, b); }
-	TEMPLATE_VECTOR_A_OTHER_B auto operator< (const VECTOR_A& a, const B& b) { return details::vector_and<B>::apply<op::sl>(a, b); }
-	TEMPLATE_VECTOR_A_OTHER_B auto operator<=(const VECTOR_A& a, const B& b) { return details::vector_and<B>::apply<op::le>(a, b); }
-	TEMPLATE_VECTOR_A_OTHER_B auto operator>=(const VECTOR_A& a, const B& b) { return details::vector_and<B>::apply<op::ge>(a, b); }
-	TEMPLATE_VECTOR_A_OTHER_B auto operator> (const VECTOR_A& a, const B& b) { return details::vector_and<B>::apply<op::sg>(a, b); }
-	TEMPLATE_VECTOR_A_OTHER_B auto operator==(const B& b, const VECTOR_A& a) { return details::vector_and<B>::apply<op::rev<op::eq>>(a, b); }
-	TEMPLATE_VECTOR_A_OTHER_B auto operator!=(const B& b, const VECTOR_A& a) { return details::vector_and<B>::apply<op::rev<op::ne>>(a, b); }
-	TEMPLATE_VECTOR_A_OTHER_B auto operator< (const B& b, const VECTOR_A& a) { return details::vector_and<B>::apply<op::rev<op::sl>>(a, b); }
-	TEMPLATE_VECTOR_A_OTHER_B auto operator<=(const B& b, const VECTOR_A& a) { return details::vector_and<B>::apply<op::rev<op::le>>(a, b); }
-	TEMPLATE_VECTOR_A_OTHER_B auto operator>=(const B& b, const VECTOR_A& a) { return details::vector_and<B>::apply<op::rev<op::ge>>(a, b); }
-	TEMPLATE_VECTOR_A_OTHER_B auto operator> (const B& b, const VECTOR_A& a) { return details::vector_and<B>::apply<op::rev<op::sg>>(a, b); }
+	TEMPLATE_VECTOR_A_OTHER_B Vector<bool, NA> operator==(const VECTOR_A& a, const B& b) { return details::vector_and<B>::apply<op::eq>(a, b); }
+	TEMPLATE_VECTOR_A_OTHER_B Vector<bool, NA> operator!=(const VECTOR_A& a, const B& b) { return details::vector_and<B>::apply<op::ne>(a, b); }
+	TEMPLATE_VECTOR_A_OTHER_B Vector<bool, NA> operator< (const VECTOR_A& a, const B& b) { return details::vector_and<B>::apply<op::sl>(a, b); }
+	TEMPLATE_VECTOR_A_OTHER_B Vector<bool, NA> operator<=(const VECTOR_A& a, const B& b) { return details::vector_and<B>::apply<op::le>(a, b); }
+	TEMPLATE_VECTOR_A_OTHER_B Vector<bool, NA> operator>=(const VECTOR_A& a, const B& b) { return details::vector_and<B>::apply<op::ge>(a, b); }
+	TEMPLATE_VECTOR_A_OTHER_B Vector<bool, NA> operator> (const VECTOR_A& a, const B& b) { return details::vector_and<B>::apply<op::sg>(a, b); }
+	TEMPLATE_VECTOR_A_OTHER_B Vector<bool, NA> operator==(const B& b, const VECTOR_A& a) { return details::vector_and<B>::apply<op::rev<op::eq>>(a, b); }
+	TEMPLATE_VECTOR_A_OTHER_B Vector<bool, NA> operator!=(const B& b, const VECTOR_A& a) { return details::vector_and<B>::apply<op::rev<op::ne>>(a, b); }
+	TEMPLATE_VECTOR_A_OTHER_B Vector<bool, NA> operator< (const B& b, const VECTOR_A& a) { return details::vector_and<B>::apply<op::rev<op::sl>>(a, b); }
+	TEMPLATE_VECTOR_A_OTHER_B Vector<bool, NA> operator<=(const B& b, const VECTOR_A& a) { return details::vector_and<B>::apply<op::rev<op::le>>(a, b); }
+	TEMPLATE_VECTOR_A_OTHER_B Vector<bool, NA> operator>=(const B& b, const VECTOR_A& a) { return details::vector_and<B>::apply<op::rev<op::ge>>(a, b); }
+	TEMPLATE_VECTOR_A_OTHER_B Vector<bool, NA> operator> (const B& b, const VECTOR_A& a) { return details::vector_and<B>::apply<op::rev<op::sg>>(a, b); }
 
 	TEMPLATE_VECTOR_A_OTHER_B inline auto operator+(const VECTOR_A& a, const B& b) { return details::vector_and<B>::apply<op::add>(a, b); }
 	TEMPLATE_VECTOR_A_OTHER_B inline auto operator-(const VECTOR_A& a, const B& b) { return details::vector_and<B>::apply<op::sub>(a, b); }
@@ -228,7 +230,7 @@ namespace uv
 	template <class A, size_t NA, int KA, size_t I> inline auto operator+(Axes<I>, const VECTOR_A& a) { return Component<A, I>(1) + a; }
 	template <class A, size_t NA, int KA, size_t I> inline auto operator-(Axes<I>, const VECTOR_A& a) { return Component<A, I>(1) - a; }
 
-	TEMPLATE_VECTORS_AB auto dot(const VECTOR_A& a, const VECTOR_B& b) { return sum(a*b); }
+	TEMPLATE_VECTORS_AB type::dot<A, B> dot(const VECTOR_A& a, const VECTOR_B& b) { return sum(a*b); }
 
 	template <class A, size_t NA, int KA, int I>
 	A dot(const VECTOR_A& a, Axes<I>)
@@ -240,10 +242,20 @@ namespace uv
 	A dot(Axes<I> ax, const VECTOR_A& a) { return dot(a, ax); }
 
 	template <class A, class B, size_t NA, int KA, size_t IB>
-	auto dot(const VECTOR_A& a, Component<B, IB> b) { return dot(a, Axes<IB>{}) * *b; }
+	type::dot<A, B> dot(const VECTOR_A& a, Component<B, IB> b) { return dot(a, Axes<IB>{}) * *b; }
 	template <class A, class B, size_t NA, int KA, size_t IB>
-	auto dot(Component<B, IB> b, const VECTOR_A& a) { return dot(a, Axes<IB>{}) * *b; }
+	type::dot<A, B> dot(Component<B, IB> b, const VECTOR_A& a) { return dot(a, Axes<IB>{}) * *b; }
 
+	TEMPLATE_VECTORS_AB auto angle(const VECTOR_A& a, const VECTOR_B& b)
+	{
+		using R = type::identity<type::dot<A, B>>;
+		return acos(std::clamp(dot(a, b) / sqrt(square(a)*square(b)), R(-1), R(1)));
+	}
+
+	template <class A, class B, size_t N, int KA, int KB>
+	Vector<type::add<A, B>, N> sum(const Vector<A, N, KA>& a, const Vector<B, N, KB>& b) { return a + b; }
+	template <class First, class... Rest, size_t N, int KF>
+	auto sum(const Vector<First, N, KF>& first, const Rest&... rest) { return first + sum(rest...); }
 
 	TEMPLATE_VECTORS_AB auto cross(const VECTOR_A& u, const VECTOR_B& v)
 	{ 
@@ -268,10 +280,10 @@ namespace uv
 
 	TEMPLATE_VECTOR_A bool isfinite(const VECTOR_A& a) { for (size_t i = 0; i < NA; ++i) if (!isfinite(a[i])) return false; return true; }
 
-	TEMPLATE_VECTOR_A auto square(const VECTOR_A& a) { return sum(a*a); }
-	TEMPLATE_VECTOR_A auto length(const VECTOR_A& a) { return sqrt(square(a)); }
+	TEMPLATE_VECTOR_A type::dot<A> square(const VECTOR_A& a) { return sum(a*a); }
+	TEMPLATE_VECTOR_A           A  length(const VECTOR_A& a) { auto sq = square(a); return sqrt(sq); }
 
-	TEMPLATE_VECTOR_A auto abs(const VECTOR_A& a)
+	TEMPLATE_VECTOR_A Vector<A, NA> abs(const VECTOR_A& a)
 	{
 		using namespace std;
 		Vector<A, NA> result;
@@ -293,7 +305,7 @@ namespace uv
 	constexpr size_t index(Axes<I...>) { return details::index_s<I...>::value; }
 
 	template <size_t N> 
-	auto from_index(size_t idx)
+	Vector<bool, N> from_index(size_t idx)
 	{
 		Vector<bool, N> result;
 		for (size_t i = 0; i < N; ++i)
@@ -309,11 +321,10 @@ namespace uv
 		return result;
 	}
 	template <class T, class... Args>
-	inline auto vector(Args... args)
+	inline Vector<T, details::element_count<Args...>::value> vector(Args... args)
 	{
-		using namespace details;
-		Vector<T, element_count<Args...>::value> result;
-		write_vector(result.data(), args...);
+		decltype(vector<T>(args...)) result;
+		details::write_vector(result.data(), args...);
 		return result;
 	}
 

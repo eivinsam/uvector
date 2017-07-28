@@ -35,27 +35,34 @@ namespace uv
 	template <class A, size_t N, size_t... I> auto operator*(const Point<A, N>& p, Axes<I...> a) { return point(p.v * a); }
 	template <class A, size_t N, size_t... I> auto operator*(Axes<I...> a, const Point<A, N>& p) { return point(a * p.v); }
 
-	TEMPLATE_ABNK auto operator+(const Point<A, N>& p, const Vector<B, N, K>& d) { return point(p.v + d); }
-	TEMPLATE_ABNK auto operator+(const Vector<A, N, K>& d, const Point<B, N>& p) { return point(d + p.v); }
+	TEMPLATE_ABNK Point<type::add<A, B>, N> operator+(const Point<A, N>& p, const Vector<B, N, K>& d) { return point(p.v + d); }
+	TEMPLATE_ABNK Point<type::add<A, B>, N> operator+(const Vector<A, N, K>& d, const Point<B, N>& p) { return point(d + p.v); }
 
-	TEMPLATE_ABN  auto operator-(const Point<A, N>& a, const  Point<B, N>&    b) { return a.v - b.v; }
-	TEMPLATE_ABNK auto operator-(const Point<A, N>& a, const Vector<B, N, K>& b) { return point(a.v - b); }
+	TEMPLATE_ABN  Vector<type::sub<A, B>, N> operator-(const Point<A, N>& a, const  Point<B, N>&    b) { return a.v - b.v; }
+	TEMPLATE_ABNK  Point<type::sub<A, B>, N> operator-(const Point<A, N>& a, const Vector<B, N, K>& b) { return point(a.v - b); }
 
 	TEMPLATE_ABN auto operator+(const Point<A, N>& p, B s) { static_assert(is_scalar_v<B>); return point(p.v + s); }
 	TEMPLATE_ABN auto operator-(const Point<A, N>& p, B s) { static_assert(is_scalar_v<B>); return point(p.v - s); }
 	TEMPLATE_ABN auto operator+(B s, const Point<A, N>& p) { static_assert(is_scalar_v<B>); return point(s + p.v); }
 
-	TEMPLATE_ABN auto operator==(const Point<A, N>& a, const  Point<B, N>& b) { return a.v == b.v; }
-	TEMPLATE_ABN auto operator!=(const Point<A, N>& a, const  Point<B, N>& b) { return a.v != b.v; }
-	TEMPLATE_ABN auto operator< (const Point<A, N>& a, const  Point<B, N>& b) { return a.v <  b.v; }
-	TEMPLATE_ABN auto operator<=(const Point<A, N>& a, const  Point<B, N>& b) { return a.v <= b.v; }
-	TEMPLATE_ABN auto operator>=(const Point<A, N>& a, const  Point<B, N>& b) { return a.v >= b.v; }
-	TEMPLATE_ABN auto operator> (const Point<A, N>& a, const  Point<B, N>& b) { return a.v >  b.v; }
+	TEMPLATE_ABN Vector<bool, N> operator==(const Point<A, N>& a, const  Point<B, N>& b) { return a.v == b.v; }
+	TEMPLATE_ABN Vector<bool, N> operator!=(const Point<A, N>& a, const  Point<B, N>& b) { return a.v != b.v; }
+	TEMPLATE_ABN Vector<bool, N> operator< (const Point<A, N>& a, const  Point<B, N>& b) { return a.v <  b.v; }
+	TEMPLATE_ABN Vector<bool, N> operator<=(const Point<A, N>& a, const  Point<B, N>& b) { return a.v <= b.v; }
+	TEMPLATE_ABN Vector<bool, N> operator>=(const Point<A, N>& a, const  Point<B, N>& b) { return a.v >= b.v; }
+	TEMPLATE_ABN Vector<bool, N> operator> (const Point<A, N>& a, const  Point<B, N>& b) { return a.v >  b.v; }
 
 	template <class T, size_t N> bool isfinite(const Point<T, N>& p) { return isfinite(p.v); }
 
-	TEMPLATE_ABNK auto dot(const Point<A, N>& a, const Vector<B, N, K>& b) { return dot(a.v, b); }
-	TEMPLATE_ABNK auto dot(const Vector<A, N, K>& a, const Point<B, N>& b) { return dot(a, b.v); }
+	TEMPLATE_ABNK type::dot<A, B> dot(const Point<A, N>& a, const Vector<B, N, K>& b) { return dot(a.v, b); }
+	TEMPLATE_ABNK type::dot<A, B> dot(const Vector<A, N, K>& a, const Point<B, N>& b) { return dot(a, b.v); }
+
+	template <class First, class... Rest, size_t N>
+	auto mean(const Point<First, N>& first, const Point<Rest, N>&... rest)
+	{
+		auto S = sum(first.v, rest.v...);
+		return point(S/(1+sizeof...(Rest)));
+	}
 
 	TEMPLATE_ABN auto operator*(const Matrix<A, N, N>& Rs, const Point<B, N>& p) { return point(Rs * p.v); }
 

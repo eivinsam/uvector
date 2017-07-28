@@ -38,6 +38,9 @@ namespace uv
 		return result_t{ a / len, len };
 	}
 
+	template <class T>
+	auto direction(const T& a) { return decompose(a).direction; }
+
 	template <class T> // Check if 'a' is of approximately unit magitude
 	bool nearUnit(const T& a)
 	{

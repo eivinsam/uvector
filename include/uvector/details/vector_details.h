@@ -213,22 +213,21 @@ namespace uv
 			}
 		};
 
-		template <class OP, class A, class B>
-		auto vector_apply(const A& a, const B& b)
+		template <class OP, class A, class B, size_t NA, size_t NB, int KA, int KB>
+		Vector<type::of<OP, A, B>, NA> vector_apply(const Vector<A, NA, KA>& a, const Vector<B, NB, KB>& b)
 		{
-			static constexpr auto N = require::equal<dim<A>, dim<B>>;
+			static constexpr auto N = require::equal<NA, NB>;
 			OP op;
-			Vector<type::of<OP, scalar<A>, scalar<B>>, N> result;
+			decltype(vector_apply<OP>(a, b)) result;
 			for (size_t i = 0; i < N; ++i)
 				result[i] = op(a[i], b[i]);
 			return result;
 		}
-		template <class OP, class V, class S>
-		auto scalar_apply(const V& v, S s)
+		template <class OP, class A, class B, size_t N, int K>
+		Vector<type::of<OP, A, B>, N> scalar_apply(const Vector<A, N, K>& v, B s)
 		{
-			static constexpr auto N = dim<V>;
 			OP op;
-			Vector<type::of<OP, scalar<V>, S>, N> result;
+			decltype(scalar_apply<OP>(v, s)) result;
 			for (size_t i = 0; i < N; ++i)
 				result[i] = op(v[i], s);
 			return result;

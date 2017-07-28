@@ -77,7 +77,7 @@ namespace uv
 	auto operator+(const Matrix<A, RA, CA>& a, const Matrix<B, RB, CB>& b)
 	{
 		static_assert(RA == RB && CA == CB, "Invalid matrix dimensions for addition");
-		Matrix<type::of<op::add, A, B>, RA, CA> result;
+		Matrix<type::add<A, B>, RA, CA> result;
 		for (int i = 0; i < RA; ++i)
 			rows(result)[i] = rows(a)[i] + rows(b)[i];
 		return result;
@@ -86,7 +86,7 @@ namespace uv
 	auto operator-(const Matrix<A, RA, CA>& a, const Matrix<B, RB, CB>& b)
 	{
 		static_assert(RA == RB && CA == CB, "Invalid matrix dimensions for substraction");
-		Matrix<type::of<op::add, A, B>, RA, CA> result;
+		Matrix<type::add<A, B>, RA, CA> result;
 		for (int i = 0; i < RA; ++i)
 			rows(result)[i] = rows(a)[i] - rows(b)[i];
 		return result;
@@ -96,7 +96,7 @@ namespace uv
 	auto operator*(const Matrix<A, R, C>& m, const Vector<B, N, K>& v)
 	{
 		static_assert(C == N, "matrix column count does not match vector length");
-		Vector<type::inner_product<A, B>, R> result;
+		Vector<type::dot<A, B>, R> result;
 		for (int i = 0; i < R; ++i)
 			result[i] = dot(rows(m)[i], v);
 		return result;
@@ -105,7 +105,7 @@ namespace uv
 	auto operator*(const Vector<A, N, K>& v, const Matrix<B, R, C>& m)
 	{
 		static_assert(R == N, "matrix row count does not match vector length");
-		Vector<type::inner_product<A, B>, C> result;
+		Vector<type::dot<A, B>, C> result;
 		for (int i = 0; i < C; ++i)
 			result[i] = dot(cols(m)[i], v);
 		return result;
@@ -115,7 +115,7 @@ namespace uv
 	auto operator*(const Matrix<A, RA, CA>& a, const Matrix<B, RB, CB>& b)
 	{
 		static_assert(CA == RB, "invalid matrix dimensions for multiplication");
-		Matrix<type::inner_product<A, B>, RA, CB> result;
+		Matrix<type::dot<A, B>, RA, CB> result;
 		for (int i = 0; i < CB; ++i)
 			cols(result)[i] = a * cols(b)[i];
 		return result;

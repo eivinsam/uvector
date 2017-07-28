@@ -78,8 +78,15 @@ namespace uv
 	{
 		template <class OP, class A, class B = A> using of = decltype(OP{}(std::declval<A>(), std::declval<B>()));
 
-		template <class A, class B = A>
-		using inner_product = of<op::add, of<op::mul, A, B>>;
+		template <class A, class B = A> using add = decltype(std::declval<A>() + std::declval<B>());
+		template <class A, class B = A> using sub = decltype(std::declval<A>() - std::declval<B>());
+		template <class A, class B = A> using mul = decltype(std::declval<A>() * std::declval<B>());
+		template <class A, class B = A> using div = decltype(std::declval<A>() / std::declval<B>());
+
+		template <class A, class B = A> using dot = add<mul<A, B>, mul<A, B>>;
+		template <class A, class B = A> using det = sub<mul<A, B>, mul<A, B>>;
+
+		template <class A, class B = A> using common = std::common_type_t<A, B>;
 
 		template <class T>
 		using identity = of<op::div, T, T>;

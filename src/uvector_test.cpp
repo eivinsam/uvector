@@ -180,8 +180,10 @@ void test_matrix(const Vector<T, N>& a)
 
 	const Matrix<float, N, N> A = d;
 
-	CHECK_EACH(A*a == vector(rows(A)[0][0]*a[0], rows(A)[1][1]*a[1], rows(A)[2][2]*a[2], rows(A)[3][3]*a[3]));
-	CHECK_EACH(A*a == diagonal(A)*a);
+	const auto Aa = A*a;
+
+	CHECK_EACH(Aa == vector(rows(A)[0][0]*a[0], rows(A)[1][1]*a[1], rows(A)[2][2]*a[2], rows(A)[3][3]*a[3]));
+	CHECK_EACH(Aa == diagonal(A)*a);
 	Matrix<float, N, N> B = 0;
 
 	CHECK_EACH(rows(B) == 0);
