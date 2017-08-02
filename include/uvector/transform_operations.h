@@ -52,6 +52,11 @@ namespace uv
 	TEMPLATE_ABN Vector<bool, N> operator>=(const Point<A, N>& a, const  Point<B, N>& b) { return a.v >= b.v; }
 	TEMPLATE_ABN Vector<bool, N> operator> (const Point<A, N>& a, const  Point<B, N>& b) { return a.v >  b.v; }
 
+	TEMPLATE_ABN auto distance(const Point<A, N>& a, const Point<B, N>& b) { return distance(a.v, b.v); }
+
+	template <class T, size_t N> T distance(const Point<T, N>& p, Origo) { return length(p.v); }
+	template <class T, size_t N> T distance(Origo, const Point<T, N>& p) { return length(p.v); }
+
 	template <class T, size_t N> bool isfinite(const Point<T, N>& p) { return isfinite(p.v); }
 
 	TEMPLATE_ABNK type::dot<A, B> dot(const Point<A, N>& a, const Vector<B, N, K>& b) { return dot(a.v, b); }
