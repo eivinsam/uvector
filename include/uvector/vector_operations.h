@@ -63,21 +63,16 @@ namespace uv
 		return result;
 	}
 
-	template <size_t... Indices, class V>
-	auto&& select(V&& source) { return details::selector<Indices...>::on(source); }
+	template <size_t... I, class V>
+	details::select_t<V, I...> select(V&& source) { return details::selector<V, I...>::on(std::forward<V>(source)); }
 
 	template <class T, size_t I, class = if_scalar_t<T>> Component<T, I> operator*(Axes<I>, T value) { return Component<T, I>(value); }
 	template <class T, size_t I, class = if_scalar_t<T>> Component<T, I> operator*(T value, Axes<I>) { return Component<T, I>(value); }
 
-	template <class T, size_t N, int K, size_t I>       T& operator*(      Vector<T, N, K>& v, Axes<I>) { return v[I]; }
-	template <class T, size_t N, int K, size_t I> const T& operator*(const Vector<T, N, K>& v, Axes<I>) { return v[I]; }
-	template <class T, size_t N, int K, size_t I>       T& operator*(Axes<I>,       Vector<T, N, K>& v) { return v[I]; }
-	template <class T, size_t N, int K, size_t I> const T& operator*(Axes<I>, const Vector<T, N, K>& v) { return v[I]; }
-
-	template <class T, size_t N, int K, size_t... I> auto& operator*(      Vector<T, N, K>& v, Axes<I...>) { return select<I...>(v); }
-	template <class T, size_t N, int K, size_t... I> auto& operator*(const Vector<T, N, K>& v, Axes<I...>) { return select<I...>(v); }
-	template <class T, size_t N, int K, size_t... I> auto& operator*(Axes<I...>,       Vector<T, N, K>& v) { return select<I...>(v); }
-	template <class T, size_t N, int K, size_t... I> auto& operator*(Axes<I...>, const Vector<T, N, K>& v) { return select<I...>(v); }
+	template <class A, size_t NA, int KA, size_t... I> details::select_t<      VECTOR_A&, I...> operator*(      VECTOR_A& v, Axes<I...>) { return select<I...>(v); }
+	template <class A, size_t NA, int KA, size_t... I> details::select_t<const VECTOR_A&, I...> operator*(const VECTOR_A& v, Axes<I...>) { return select<I...>(v); }
+	template <class A, size_t NA, int KA, size_t... I> details::select_t<      VECTOR_A&, I...> operator*(Axes<I...>,       VECTOR_A& v) { return select<I...>(v); }
+	template <class A, size_t NA, int KA, size_t... I> details::select_t<const VECTOR_A&, I...> operator*(Axes<I...>, const VECTOR_A& v) { return select<I...>(v); }
 
 	template <class A, class B, size_t N, int K, size_t I>
 	auto operator+(const Vector<A, N, K>& v, Component<B, I> c)
