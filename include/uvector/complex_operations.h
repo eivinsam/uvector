@@ -32,7 +32,7 @@ namespace uv
 	template <class T, class S, class = if_scalar_t<S>> auto operator+(S a, Imag<T> b) { return Complex<std::common_type_t<T, S>>{  a,  b.value }; }
 	template <class T, class S, class = if_scalar_t<S>> auto operator-(S a, Imag<T> b) { return Complex<std::common_type_t<T, S>>{  a, -b.value }; }
 	template <class T, class S, class = if_scalar_t<S>> auto operator+(Imag<T> a, S b) { return Complex<std::common_type_t<T, S>>{  b, a.value }; }
-	template <class T, class S, class = if_scalar_t<S>> auto operator-(Imag<A> a, S b) { return Complex<std::common_type_t<T, S>>{ -b,  a.value }; }
+	template <class T, class S, class = if_scalar_t<S>> auto operator-(Imag<T> a, S b) { return Complex<std::common_type_t<T, S>>{ -b,  a.value }; }
 
 	template <class T, class S, class = if_scalar_t<S>> auto operator*(S a, Imag<T> b) { return imag(a *  b.value); }
 	template <class T, class S, class = if_scalar_t<S>> auto operator/(S a, Imag<T> b) { return imag(a / -b.value); }
