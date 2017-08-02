@@ -252,6 +252,20 @@ namespace uv
 		return acos(std::clamp(dot(a, b) / sqrt(square(a)*square(b)), R(-1), R(1)));
 	}
 
+	// Counter-clockwise angle from 'a' to 'b' in (-pi, pi)
+	template <class A, class B, int KA, int KB> auto signed_angle(const Vector<A, 2, KA>& a, const Vector<B, 2, KB>& b)
+	{
+		return atan2(cross(a, b), dot(a, b));
+	}
+	// Counter-clockwise angle from 'a' to 'b' in (-pi, pi) around 'axis'
+	template <class A, class B, class C, int KA, int KB, int KC> auto signed_angle(const Vector<A, 3, KA>& a, const Vector<B, 3, KB>& b, const Vector<C, 3, KC>& axis)
+	{
+		const auto Z = direction(axis);
+		const auto X = a - N*dot(a, N);
+		const auto Y = cross(Z, X);
+		return atan2(dot(Y, b), dot(X, b));
+	}
+
 	template <class A, class B, size_t N, int KA, int KB>
 	Vector<type::add<A, B>, N> sum(const Vector<A, N, KA>& a, const Vector<B, N, KB>& b) { return a + b; }
 	template <class First, class... Rest, size_t N, int KF>
