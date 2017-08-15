@@ -1,34 +1,10 @@
 #pragma once
 
+#include "point.h"
 #include "matrix.h"
 
 namespace uv
 {
-	struct Origo { };
-	static constexpr Origo origo;
-
-	template <class T, size_t N, int K = 1>
-	class Point
-	{
-	public:
-		using scalar_type = T;
-		static constexpr size_t dim = N;
-
-		Vector<T, N, K> v;
-
-		Point() { }
-		Point(Origo) : v(T(0)) { }
-		template <int KB>
-		Point(const Vector<T, N, KB>& a) : v(a) { }
-
-		Point& operator=(Origo)                 { v = T(0); return *this; }
-	};
-	using Point2f = Point<float, 2>;
-	using Point3f = Point<float, 3>;
-	using Point4f = Point<float, 4>;
-	using Point2d = Point<double, 2>;
-	using Point3d = Point<double, 3>;
-	using Point4d = Point<double, 4>;
 
 	template <class T, size_t N>
 	class Transform
@@ -36,6 +12,35 @@ namespace uv
 	public:
 		Matrix<type::identity<T>, N, N> Rs;
 		Vector<T, N> t;
+
+		template <class B, int K> friend auto operator+(Transform tf, const Vector<B, N, K>& t)  { tf.t = tf.t + tf.Rs*t;  return tf; }
+		template <class B>        friend auto operator*(Transform tf, const Matrix<B, N, N>& Rs) { tf.Rs = tf.Rs*Rs; return tf; }
+
+		template <class B>           friend auto operator*(const Transform& a,  const Transform<B, N>&    b) { return { a.t + a.Rs*b.t, a.Rs * b.Rs }; }
+		template <class B, int K>    friend auto operator*(const Transform& tf, const    Vector<B, N, K>& d) { return tf.Rs * d; }
+		template <class B>           friend auto operator*(const Transform& tf, const     Point<B, N>&    p) { return tf.Rs * p + tf.t; }
+		template <class B, size_t I> friend auto operator*(const Transform& tf, Component<B, I> c)           { return tf.Rs * c + tf.t; }
+
+		friend Transform invert(Transform tf)
+		{
+			tf.Rs = invert(tf.Rs);
+			tf.t = -(tf.Rs*tf.t);
+			return tf;
+		}
+
+		friend Matrix<T, N + 1, N + 1> homogeneous(const Transform& tf)
+		{
+			decltype(homogeneous(tf)) result;
+			for (size_t i = 0; i < N; ++i)
+				for (size_t j = 0; j < N; ++j)
+					rows(result)[i][j] = rows(tf.Rs)[i][j];
+			for (size_t i = 0; i < N; ++i)
+				cols(result)[N][i] = tf.t[i];
+			for (size_t i = 0; i < N; ++i)
+				rows(result)[N][i] = T(0);
+			rows(result)[N][N] = 1;
+			return result;
+		}
 	};
 	using Transform2f = Transform<float, 2>;
 	using Transform3f = Transform<float, 3>;
@@ -43,4 +48,8 @@ namespace uv
 	using Transform2d = Transform<double, 2>;
 	using Transform3d = Transform<double, 3>;
 	using Transform4d = Transform<double, 4>;
+
+	template <class T, size_t N, int K> auto transform(const Vector<T, N, K>& t)                                            { return Transform<T, N>{ 1,  t }; }
+	template <class T, size_t N>        auto transform(const Matrix<type::identity<T>, N, N>& Rs)                           { return Transform<T, N>{ Rs, 0 }; }
+	template <class T, size_t N, int K> auto transform(const Matrix<type::identity<T>, N, N>& Rs, const Vector<T, N, K>& t) { return Transform<T, N>{ Rs, t }; }
 }

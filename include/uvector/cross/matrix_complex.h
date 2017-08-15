@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../matrix_operations.h"
-#include "../complex_operations.h"
+#include "../matrix.h"
+#include "../complex.h"
 
 namespace uv
 {
