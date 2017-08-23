@@ -5,13 +5,10 @@
 
 namespace uv
 {
-	template <class T>
-	static constexpr T pi = T(3.1415926535897932384626433832795);
-	static constexpr auto pif = pi<float>;
-	static constexpr auto pid = pi<double>;
+	static constexpr auto inf = std::numeric_limits<float> ::infinity();
 
-	static constexpr auto inff = std::numeric_limits<float> ::infinity();
-	static constexpr auto infd = std::numeric_limits<double>::infinity();
+	struct Identity { };
+	static constexpr Identity identity = {};
 
 	template <class T> struct is_scalar : std::is_arithmetic<T> { };
 	template <class T> struct is_scalar<T&> : is_scalar<T> { };
@@ -19,9 +16,100 @@ namespace uv
 	template <class T> static constexpr bool is_scalar_v = is_scalar<T>::value;
 
 	template <class T, class R = void>
-	struct if_scalar : public std::enable_if<is_scalar_v<T>, R> { };
-	template <class T, class R = void>
-	using if_scalar_t = typename if_scalar<T, R>::type;
+	using if_scalar_t = std::enable_if_t<is_scalar<T>::value, R>;
+
+	struct Unit
+	{
+		constexpr Unit() { }
+
+		template <class T, class = if_scalar_t<T>> friend constexpr T operator+(Unit, T value) { return value + T(1); }
+		template <class T, class = if_scalar_t<T>> friend constexpr T operator-(Unit, T value) { return value - T(1); }
+		template <class T, class = if_scalar_t<T>> friend constexpr T operator*(Unit, T value) { return value; }
+		template <class T, class = if_scalar_t<T>> friend constexpr T operator/(Unit, T value) { return value; }
+		template <class T, class = if_scalar_t<T>> friend constexpr T operator+(T value, Unit) { return T(1) + value; }
+		template <class T, class = if_scalar_t<T>> friend constexpr T operator-(T value, Unit) { return T(1) - value; }
+		template <class T, class = if_scalar_t<T>> friend constexpr T operator*(T value, Unit) { return value; }
+		template <class T, class = if_scalar_t<T>> friend constexpr auto operator/(T value, Unit) { return 1 / value; }
+	};
+	template <>
+	struct is_scalar<Unit> : std::true_type { };
+
+	template <size_t N, class T> struct is_unit : std::false_type { };
+	template <size_t N, class T> struct is_unit<N, T&> : is_unit<N, T> { };
+	template <size_t N, class T> struct is_unit<N, const T> : is_unit<N, T> { };
+	template <>
+	struct is_unit<1, Unit> : std::true_type { };
+
+	template <size_t N, class T>
+	static constexpr bool is_unit_v = is_unit<N, T>::value;
+	template <size_t N, class T, class R = void>
+	using if_unit_t = std::enable_if_t<is_unit<N, T>::value, R>;
+
+	class Pi
+	{
+		double _p;
+		static constexpr int _q = 6;
+
+		static constexpr double pi = 3.1415926535897932384626433832795;
+		static constexpr double sqrth = 0.70710678118654752440084436210485;
+		static constexpr double sqrtt = 0.86602540378443864676372317075294;
+
+		explicit constexpr Pi(double p) : _p(p) { }
+
+		template <class T>
+		using if_arith_t = std::enable_if_t<std::is_arithmetic<T>::value>;
+	public:
+		constexpr Pi() : _p(_q) { }
+
+		constexpr Pi operator-() const { return Pi{ -_p }; }
+
+		template <class T> constexpr friend Pi operator*(Pi p, T c) { return Pi{ p._p*c }; }
+		template <class T> constexpr friend Pi operator*(T c, Pi p) { return Pi{ p._p*c }; }
+		template <class T> constexpr friend Pi operator/(Pi p, T c) { return Pi{ p._p / c }; }
+		
+		friend constexpr double operator+(Pi p, Unit) { return double(p) + 1; }
+		friend constexpr double operator-(Pi p, Unit) { return double(p) - 1; }
+		friend constexpr double operator+(Unit, Pi p) { return 1 + double(p); }
+		friend constexpr double operator-(Unit, Pi p) { return 1 - double(p); }
+
+		friend constexpr Pi operator*(Pi p, Unit) { return p; }
+		friend constexpr Pi operator/(Pi p, Unit) { return p; }
+		friend constexpr Pi operator*(Unit, Pi p) { return p; }
+
+		constexpr friend Pi operator+(Pi a, Pi b) { return Pi{ a._p + b._p }; }
+		constexpr friend Pi operator-(Pi a, Pi b) { return Pi{ a._p + b._p }; }
+		constexpr friend double operator/(Pi a, Pi b) { return a._p / b._p; }
+
+		constexpr double sin() const
+		{
+			if (_p == 0) return 0.0; // 0pi
+			if (_p < 0) return -Pi(-_p).sin();
+			if (_p >= _q * 2) return Pi(_p - _q*2).sin();
+			if (_p >= _q) return -Pi(_p + _q).sin(); // > 1pi
+			if (_p * 2 == _q) return 1.0;// pi/2
+			if (_p * 2 > _q) return Pi(_q - _p).sin(); // > pi/2
+			if (_p * 3 == _q) return sqrtt;// pi/3
+			if (_p * 4 == _q) return sqrth;
+			if (_p * 6 == _q) return 0.5;
+
+			return std::cos(double(*this));
+		}
+		constexpr double cos() const { return Pi(_p + _q/2).sin(); }
+
+		constexpr operator double() const { return _p*pi / _q; }
+		constexpr operator float() const { return float(double(*this)); }
+	};
+	template <>
+	struct is_scalar<Pi> : std::true_type { };
+}
+namespace std
+{
+	constexpr double sin(uv::Pi a) { return a.sin(); }
+	constexpr double cos(uv::Pi a) { return a.cos(); }
+}
+namespace uv
+{
+	static constexpr Pi pi = {};
 
 	namespace details
 	{
