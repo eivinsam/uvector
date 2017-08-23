@@ -1,55 +1,55 @@
 #pragma once
 
 #include "point.h"
-#include "matrix.h"
+#include "rotation.h"
 
 namespace uv
 {
-
-	template <class T, size_t N>
-	class Transform
+	template <class T>
+	class Trans3
 	{
+		using U = type::identity<T>;
 	public:
-		Matrix<type::identity<T>, N, N> Rs;
-		Vector<T, N> t;
+		Rot3<U> r;
+		Vec3<T> t;
 
-		template <class B, int K> friend auto operator+(Transform tf, const Vector<B, N, K>& t)  { tf.t = tf.t + tf.Rs*t;  return tf; }
-		template <class B>        friend auto operator*(Transform tf, const Matrix<B, N, N>& Rs) { tf.Rs = tf.Rs*Rs; return tf; }
+		Trans3() = delete;
+		Trans3(Identity I) : r(I), t(T(0)) { }
+		template <class V, class = if_vector_t<3, V>>
+		Trans3(const Rot3<U>& r, const V& t) : r(r), t(t) { }
 
-		template <class B>           friend auto operator*(const Transform& a,  const Transform<B, N>&    b) { return { a.t + a.Rs*b.t, a.Rs * b.Rs }; }
-		template <class B, int K>    friend auto operator*(const Transform& tf, const    Vector<B, N, K>& d) { return tf.Rs * d; }
-		template <class B>           friend auto operator*(const Transform& tf, const     Point<B, N>&    p) { return tf.Rs * p + tf.t; }
-		template <class B, size_t I> friend auto operator*(const Transform& tf, Component<B, I> c)           { return tf.Rs * c + tf.t; }
+		template <int K>
+		Trans3& operator=(const Vec3<T, K>& translation) { r = 1; t = translation; return *this; }
+		Trans3& operator=(const Rot3<U>& rotation) { r = rotation; t = 0; return *this; }
 
-		friend Transform invert(Transform tf)
+		template <class B>        friend auto operator*(Trans3 tf, const Rot3<B>& r)    { return tf *= r; }
+		template <class V, class = if_vector_t<3, V>> 
+		friend auto operator+(Trans3 tf, const V& t) { return tf += t; }
+
+		template <class B>
+		friend Trans3<type::add<T, B>> operator*(const Trans3& a,  const Trans3<B>&    b) { return { a.r*b.r, a.t + a.r*b.t }; }
+		template <class V, class = if_vector_t<3, V>> friend auto operator*(const Trans3& tf, const V& v) { return tf.r * v; }
+		template <class B>           friend Pnt3<type::add<T, B>> operator*(const Trans3& tf, const Pnt3<B>&    p) { return point(tf.r * p.v + tf.t); }
+
+		friend Pnt3<T> operator*(const Trans3& tf, Origo) { return point(tf.t); }
+
+		Trans3& operator*=(const Trans3& b) { *this = *this * b; return *this; }
+		Trans3& operator*=(const Rot3<U>& b) { r = r * b; return *this; }
+		template <class V, class = if_vector_t<3, V>>
+		Trans3& operator+=(const V& v) { t = t + r*v; return *this; }
+
+		friend Trans3 invert(Trans3 tf)
 		{
-			tf.Rs = invert(tf.Rs);
-			tf.t = -(tf.Rs*tf.t);
+			tf.r = invert(tf.r);
+			tf.t = -(tf.r*tf.t);
 			return tf;
 		}
-
-		friend Matrix<T, N + 1, N + 1> homogeneous(const Transform& tf)
-		{
-			decltype(homogeneous(tf)) result;
-			for (size_t i = 0; i < N; ++i)
-				for (size_t j = 0; j < N; ++j)
-					rows(result)[i][j] = rows(tf.Rs)[i][j];
-			for (size_t i = 0; i < N; ++i)
-				cols(result)[N][i] = tf.t[i];
-			for (size_t i = 0; i < N; ++i)
-				rows(result)[N][i] = T(0);
-			rows(result)[N][N] = 1;
-			return result;
-		}
 	};
-	using Transform2f = Transform<float, 2>;
-	using Transform3f = Transform<float, 3>;
-	using Transform4f = Transform<float, 4>;
-	using Transform2d = Transform<double, 2>;
-	using Transform3d = Transform<double, 3>;
-	using Transform4d = Transform<double, 4>;
+	using Transform3f = Trans3<float>;
+	using Transform3d = Trans3<double>;
 
-	template <class T, size_t N, int K> auto transform(const Vector<T, N, K>& t)                                            { return Transform<T, N>{ 1,  t }; }
-	template <class T, size_t N>        auto transform(const Matrix<type::identity<T>, N, N>& Rs)                           { return Transform<T, N>{ Rs, 0 }; }
-	template <class T, size_t N, int K> auto transform(const Matrix<type::identity<T>, N, N>& Rs, const Vector<T, N, K>& t) { return Transform<T, N>{ Rs, t }; }
+	template <class V, class = if_vector_t<3, V>> auto transform(const V& t) { return Trans3<scalar<V>>{ identity, t }; }
+	template <class V, class = if_vector_t<3, V>> auto transform(const Rot3<type::identity<scalar<V>>>& r, const V& t) { return Trans3<scalar<V>>{r, t}; }
+	template <class T>        Trans3<T> transform(const Rot3<type::identity<T>>& r)                    { return { r, 0 }; }
+	template <class T, int K> Trans3<T> transform(const Rot3<type::identity<T>>& r, const Vec3<T, K>& t) { return { r, t }; }
 }

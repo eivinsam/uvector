@@ -1,6 +1,6 @@
 #include <uvector/vector.h>
 #include <uvector/matrix.h>
-#include <uvector/quaternion.h>
+#include <uvector/transform.h>
 #include <uvector/bounds.h>
 #include <uvector/complex.h>
 #include <units.h>
@@ -13,7 +13,11 @@ using namespace uv::axes;
 static std::mt19937 rng;
 
 template <class T, size_t N, int K>
-struct tester::Magnitude<uv::Vector<T, N, K>> { double operator()(const uv::Vector<T, N, K>& v) const { return double(length(v)); } };
+struct tester::Magnitude<uv::Vec<T, N, K>> { double operator()(const uv::Vec<T, N, K>& v) const { return double(length(v)); } };
+template <class T, size_t N>
+struct tester::Magnitude<uv::Dir<T, N>> { constexpr double operator()(const uv::Dir<T, N>&) const { return 1.0; } };
+template <class T>
+struct tester::Magnitude<uv::Quat<T>> { double operator()(const uv::Quat<T>& q) const { return double(length(q)); } };
 
 namespace uv
 {
@@ -76,6 +80,8 @@ void test_selectors(T& a)
 	check_selector(a*(Y+Z+W), a, { 1, 2, 3 });
 	check_selector(a*(Z+Y+X), a, { 2, 1, 0 });
 	check_selector(a*(W+Z+Y), a, { 3, 2, 1 });
+
+	CHECK_EACH(uv::vector(a*Z, a*XY) == a*(Z + XY));
 }
 
 template <class T>
@@ -120,7 +126,7 @@ void test_decomposition(const T& a)
 	CHECK_EACH_APPROX(a == d.direction * d.length);
 }
 template <class T, size_t N>
-void test_components(const uv::Vector<T,N>& a, const T c)
+void test_components(const uv::Vec<T,N>& a, const T c)
 {
 	tester::section = "components";
 	
@@ -129,7 +135,7 @@ void test_components(const uv::Vector<T,N>& a, const T c)
 	CHECK_EACH(a + Z*c == uv::vector(a[0], a[1], a[2] + c, a[3]));
 	CHECK_EACH(a + W*c == uv::vector(a[0], a[1], a[2], a[3] + c));
 
-	uv::Matrix<T, N, N> m;
+	uv::Mat<T, N, N> m;
 	T* md = m.data();
 	for (size_t i = 0; i < N; ++i)
 	{
@@ -144,11 +150,11 @@ void test_components(const uv::Vector<T,N>& a, const T c)
 		CHECK(&cols(m)[3][i] == &(m*W)[i] == md + i + 3*N);
 	}
 
-	CHECK(typeid(uv::Vector<T, 2>) == typeid(X*c + Y*c));
+	CHECK(typeid(uv::Vec<T, 2>) == typeid(X*c + Y*c));
 }
 
 template <class T, size_t N>
-void test_bounds(const uv::Vector<T, N>& a, const uv::Vector<T, N>& b, const T c)
+void test_bounds(const uv::Vec<T, N>& a, const uv::Vec<T, N>& b, const T c)
 {
 	tester::section = "bounds";
 
@@ -167,22 +173,22 @@ void test_bounds(const uv::Vector<T, N>& a, const uv::Vector<T, N>& b, const T c
 }
 
 template <class T, size_t N>
-void test_matrix(const uv::Vector<T, N>& a)
+void test_matrix(const uv::Vec<T, N>& a)
 {
 	static_assert(N == 4);
 	tester::section = "matrix";
 
-	uv::Vector<float, N> d;
+	uv::Vec<float, N> d;
 	for (auto& c : d)
 		c = signed_unit_float();
 
-	const uv::Matrix<float, N, N> A = d;
+	const uv::Mat<float, N, N> A = d;
 
 	const auto Aa = A*a;
 
 	CHECK_EACH(Aa == uv::vector(rows(A)[0][0]*a[0], rows(A)[1][1]*a[1], rows(A)[2][2]*a[2], rows(A)[3][3]*a[3]));
 	CHECK_EACH(Aa == diagonal(A)*a);
-	uv::Matrix<float, N, N> B = 0;
+	uv::Mat<float, N, N> B = 0;
 
 	CHECK_EACH(rows(B) == 0);
 
@@ -200,38 +206,57 @@ void test_matrix(const uv::Vector<T, N>& a)
 	CHECK_EACH(rows(A*B) == rows(rows(d[0] * rows(B)[0], d[1] * rows(B)[1], d[2] * rows(B)[2], d[3] * rows(B)[3])));
 }
 
-void test_quaternion(const uv::Vector<float, 4>& v)
+void test_pi()
+{
+	tester::section = "pi";
+
+
+	const auto r2 = rotation(uv::pi / 2);
+
+	CHECK(r2*X == uv::vector<double>(0, +1));
+	CHECK(r2*Y == uv::vector<double>(-1, 0));
+
+	CHECK_APPROX(r2.about(X)*X == uv::vector<double>(+1, 0, 0));
+	CHECK_APPROX(r2.about(X)*Y == uv::vector<double>(0, 0, +1));
+	CHECK_APPROX(r2.about(X)*Z == uv::vector<double>(0, -1, 0));
+
+	CHECK_APPROX(r2.about(Y)*Y == uv::vector<double>(0, +1, 0));
+	CHECK_APPROX(r2.about(Y)*Z == uv::vector<double>(+1, 0, 0));
+	CHECK_APPROX(r2.about(Y)*X == uv::vector<double>(0, 0, -1));
+
+	CHECK_APPROX(r2.about(Z)*Z == uv::vector<double>(0, 0, +1));
+	CHECK_APPROX(r2.about(Z)*X == uv::vector<double>(0, +1, 0));
+	CHECK_APPROX(r2.about(Z)*Y == uv::vector<double>(-1, 0, 0));
+}
+
+void test_quaternion(const uv::Vec<float, 4>& v)
 {
 	tester::section = "quaternion";
-	auto a = 1.0f;
-	auto R = uv::rotation<float>(a, Z);
+	tester::presicion = 2e-5f;
+	auto a = signed_unit_float();
+	auto R = uv::rotation(a).about(Z);
 
-	CHECK_EACH_APPROX(R*X == uv::vector<float>(cos(a), sin(a), 0));
-	CHECK_EACH_APPROX(R*Y == uv::vector<float>(-sin(a), cos(a), 0));
-	CHECK_EACH(R*Z == uv::vector<float>(0, 0, 1));
+	CHECK_APPROX(R*X == uv::vector<float>(cos(a), sin(a), 0));
+	CHECK_APPROX(R*Y == uv::vector<float>(-sin(a), cos(a), 0));
+	CHECK_APPROX(R*Z == uv::vector<float>(0, 0, 1));
 
-	static_assert(!uv::is_scalar_v<uv::Quaternion<float>>);
-	CHECK_APPROX(rotation(a, v*XYZ) * (v*XYZ) == v*XYZ);
+	static_assert(!uv::is_scalar_v<uv::Quat<float>>);
+	CHECK_APPROX(uv::rotation(a).about(direction(v*XYZ)) * (v*XYZ) == v*XYZ);
 
-	auto old_p = tester::presicion;
 	tester::presicion = 2e-4f;
 
-	auto q = uv::quaternion(signed_unit_float(), signed_unit_float(), signed_unit_float(), signed_unit_float());
-	if (q.re < 0)
-		q = -q;
-	auto qm = matrix(q);
-	CHECK_APPROX(q * X == qm * X);
-	CHECK_APPROX(q * Y == qm * Y);
-	CHECK_APPROX(q * Z == qm * Z);
-	auto qmq = quaternion(qm);
-	CHECK_APPROX(uv::vector(q.re, q.im) == uv::vector(qmq.re, qmq.im));
-
-	tester::presicion = old_p;
+	auto r = rotation(uv::quaternion(abs(signed_unit_float()), uv::vector(signed_unit_float(), signed_unit_float(), signed_unit_float())));
+	auto rm = matrix(r);
+	CHECK_APPROX(r * X == rm * X);
+	CHECK_APPROX(r * Y == rm * Y);
+	CHECK_APPROX(r * Z == rm * Z);
+	auto rmr = rotation(rm);
+	CHECK_APPROX(quaternion(r) == quaternion(rmr));
 }
-void test_quaternion(const uv::Vector<units::Distance<float>, 4>&)
+void test_quaternion(const uv::Vec<units::Distance<float>, 4>&)
 { 
 }
-void test_complex(const uv::Vector<float, 4>& v)
+void test_complex(const uv::Vec<float, 4>& v)
 {
 	(void)v;
 	tester::section = "complex";
@@ -248,27 +273,23 @@ void test_complex(const uv::Vector<float, 4>& v)
 	{ const auto cr = ca * cb; CHECK(cr.re == (v[0]*v[2] - v[1]*v[3])); CHECK(cr.im == i*(v[1]*v[2] + v[0]*v[3])); }
 	{ const auto cr = ca / cb; CHECK(cr.re == ((v[0]*v[2] + v[1]*v[3])/cbsq)); CHECK(cr.im == i*((v[1]*v[2] - v[0]*v[3])/cbsq)); }
 }
-void test_complex(const uv::Vector<units::Distance<float>, 4>&)
+void test_complex(const uv::Vec<units::Distance<float>, 4>&)
 {
 }
 
-void test_rotate(const uv::Vector<float, 4>&)
+void test_rotate(const uv::Vec<float, 4>&)
 {
 	auto v = uv::vector<float>(signed_unit_float(), signed_unit_float(), signed_unit_float());
 	auto ax = decompose(uv::vector<float>(1, 0, 0)).direction;
 	tester::section = "rotate";
 	auto vd = decompose(v).direction;
 	auto R = rotation(ax, vd);
-	auto RI = rotation(vd, ax);
-	auto TRI = transpose(RI);
-	CHECK_APPROX(det(R) == 1);
-	CHECK_APPROX(vd == R*ax);
-	CHECK_EACH_APPROX(cols(R) == cols(TRI));
 
-	CHECK_EACH(cols(R) == cols(rotation(X, vd)));
-	CHECK_EACH_APPROX(cols(R) == cols(transpose(rotation(vd, X))));
+	tester::presicion = 5e-6f;
+	CHECK_APPROX(square(reinterpret_cast<uv::Quat<float>&>(R)) == 1);
+	CHECK_APPROX(vd == R*ax);
 }
-void test_rotate(const uv::Vector<units::Distance<float>, 4>&)
+void test_rotate(const uv::Vec<units::Distance<float>, 4>&)
 {
 
 }
@@ -283,8 +304,8 @@ void fuzz_vectors()
 		auto a = uv::vector<T>(fuzzy_float(), fuzzy_float(), fuzzy_float(), fuzzy_float());
 		const auto b = uv::vector<T>(fuzzy_float(), fuzzy_float(), fuzzy_float(), fuzzy_float());
 		const T c = T(fuzzy_float());
-		test_selectors<uv::Vector<T, 4>>(a);
-		test_selectors<const uv::Vector<T, 4>>(a);
+		test_selectors<uv::Vec<T, 4>>(a);
+		test_selectors<const uv::Vec<T, 4>>(a);
 		test_arithmetics(a, b, c);
 		test_dot_product(a, b);
 		test_cross_product(a, b);
@@ -310,6 +331,11 @@ TEST_CASE("uvector")
 			CHECK(all(boolv) == (x == 0b1111));
 			CHECK(any(boolv) == (x != 0));
 		}
+	}
+
+	SUBCASE("constants")
+	{
+		test_pi();
 	}
 
 	SUBCASE("float")

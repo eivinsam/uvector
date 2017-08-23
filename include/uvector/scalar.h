@@ -225,23 +225,23 @@ namespace uv
 	T length(T value) { using namespace std; return abs(value); }
 
 	template <class T, class = std::enable_if_t<!is_scalar_v<T>>>
-	scalar<T> length(T value) { return sqrt(square(value)); }
+	scalar<T> length(const T& value) { return sqrt(square(value)); }
 
 	template <class A, class B>
 	auto distance(const A& a, const B& b) { return length(a - b); }
 
+
 	template <class T>
-	struct decompose_result
+	struct Decomposed
 	{
-		decltype(std::declval<T>() / std::declval<scalar<T>>()) direction;
 		scalar<T> length;
+		decltype(std::declval<T>() / std::declval<scalar<T>>()) direction;
+
+		Decomposed(const T& value) : length(uv::length(value)), direction(value/length) { }
 	};
+
 	template <class T> // Decomposes vector into direction vector and scalar length
-	decompose_result<T> decompose(const T& a)
-	{
-		const auto len = length(a);
-		return { a / len, len };
-	}
+	Decomposed<T> decompose(const T& a) { return { a }; }
 
 	template <class T>
 	auto direction(const T& a) { return decompose(a).direction; }
@@ -250,7 +250,7 @@ namespace uv
 	bool nearUnit(const T& a)
 	{
 		using S = decltype(square(a));
-		static constexpr auto p = S(0.00001);
+		static constexpr S p = S(0.00001);
 		const auto d = square(a) - S(1);
 		return -p < d && d < p;
 	}

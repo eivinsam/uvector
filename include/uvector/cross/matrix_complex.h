@@ -9,7 +9,7 @@ namespace uv
 	auto matrix(const Complex<T>& rot) { return rows(vector(real(rot), -imag(rot)), vector(imag(rot), real(rot))); }
 
 	template <class A, class B, int K>
-	auto matrix(const Complex<A>& rot, const Vector<B, 3, K>& axis)
+	auto matrix(const Complex<A>& rot, const Vec<B, 3, K>& axis)
 	{
 		auto nrot = decompose(rot).direction;
 		auto naxis = decompose(axis).direction;
@@ -31,7 +31,7 @@ namespace uv
 		static_assert(I < 3, "Axis of rotation must be X, Y or Z");
 		static constexpr size_t J = (I + 1) % 3;
 		static constexpr size_t K = (I + 2) % 3;
-		Matrix<type::identity<T>, 3, 3> result = 0;
+		Mat<type::identity<T>, 3, 3> result = 0;
 		rows(result)[I][I] = 1;
 		rows(result)[J][J] = real(rot); rows(result)[J][K] = -imag(rot);
 		rows(result)[K][J] = imag(rot); rows(result)[K][K] = +real(rot);
