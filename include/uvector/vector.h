@@ -37,7 +37,7 @@ namespace uv
 	template <size_t N, class T> static constexpr bool is_vector_v = is_vector<N, T>::value;
 	template <size_t N, class T, class R = void> 
 	using if_vector_t = std::enable_if_t<is_vector<N, T>::value, R>;
-	
+
 	template <class T, size_t N, int K>
 	struct is_vector<N, Vec<T, N, K>> : std::true_type { };
 
@@ -45,7 +45,7 @@ namespace uv
 	struct Axes
 	{
 		template <size_t... J>
-		constexpr Axes<I..., J...> operator+(Axes<J...>) const { return {}; }
+		constexpr Axes<I..., J...> operator|(Axes<J...>) const { return {}; }
 	};
 
 	namespace details
@@ -95,7 +95,7 @@ namespace uv
 		constexpr Axes() : Component<Unit, I>{ Unit{} } { }
 
 		template <size_t... J>
-		constexpr Axes<I, J...> operator+(Axes<J...>) const { return {}; }
+		constexpr Axes<I, J...> operator|(Axes<J...>) const { return {}; }
 
 		template <class S, class = if_scalar_t<S>> friend constexpr Component<S, I> operator*(Axes, S s) { return { s }; }
 		template <class S, class = if_scalar_t<S>> friend constexpr Component<type::div<int, S>, I> operator/(Axes, S s) { return { 1 / s }; }
@@ -113,22 +113,22 @@ namespace uv
 		static constexpr Axes<2> Z = {};
 		static constexpr Axes<3> W = {};
 
-		static constexpr auto XY = X + Y;
-		static constexpr auto YZ = Y + Z;
-		static constexpr auto ZW = Z + W;
-		static constexpr auto WX = W + X;
+		static constexpr auto XY = X | Y;
+		static constexpr auto YZ = Y | Z;
+		static constexpr auto ZW = Z | W;
+		static constexpr auto WX = W | X;
 
-		static constexpr auto XZ = X + Z;
-		static constexpr auto YW = Y + W;
-		static constexpr auto ZX = Z + X;
-		static constexpr auto WY = W + Y;
+		static constexpr auto XZ = X | Z;
+		static constexpr auto YW = Y | W;
+		static constexpr auto ZX = Z | X;
+		static constexpr auto WY = W | Y;
 
-		static constexpr auto XW = X + W;
-		static constexpr auto YX = Y + X;
-		static constexpr auto ZY = Z + Y;
-		static constexpr auto WZ = W + Z;
+		static constexpr auto XW = X | W;
+		static constexpr auto YX = Y | X;
+		static constexpr auto ZY = Z | Y;
+		static constexpr auto WZ = W | Z;
 
-		static constexpr auto XYZ = X + Y + Z;
+		static constexpr auto XYZ = X | Y | Z;
 	}
 
 

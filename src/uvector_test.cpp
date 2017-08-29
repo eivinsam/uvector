@@ -76,12 +76,12 @@ void test_selectors(T& a)
 	check_selector(a*ZX, a, { 2, 0 });
 	check_selector(a*WY, a, { 3, 1 });
 
-	check_selector(a*(X+Y+Z), a, { 0, 1, 2 });
-	check_selector(a*(Y+Z+W), a, { 1, 2, 3 });
-	check_selector(a*(Z+Y+X), a, { 2, 1, 0 });
-	check_selector(a*(W+Z+Y), a, { 3, 2, 1 });
+	check_selector(a*(X|Y|Z), a, { 0, 1, 2 });
+	check_selector(a*(Y|Z|W), a, { 1, 2, 3 });
+	check_selector(a*(Z|Y|X), a, { 2, 1, 0 });
+	check_selector(a*(W|Z|Y), a, { 3, 2, 1 });
 
-	CHECK_EACH(uv::vector(a*Z, a*XY) == a*(Z + XY));
+	CHECK_EACH(uv::vector(a*Z, a*XY) == a*(Z | XY));
 }
 
 template <class T>
