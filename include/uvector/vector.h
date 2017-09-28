@@ -281,7 +281,7 @@ namespace uv
 
 			using type = typename result<V>::type;
 
-			static type on(V&& v)
+			static constexpr type on(V&& v)
 			{
 				static_assert(Imax < dim<V>, "Highest index must be less than vector dimension");
 				return reinterpret_cast<type>(v[Ifirst]);
@@ -305,7 +305,7 @@ namespace uv
 		struct copy_selector<Vec<T, N, K>, I...>
 		{
 			using type = Vec<T, sizeof...(I)>;
-			static type on(const Vec<T, N, K>& v)
+			static constexpr type on(const Vec<T, N, K>& v)
 			{
 				assert_all_less<N, I...>();
 				return vector( v[I]... );
@@ -323,7 +323,7 @@ namespace uv
 		{
 			using type = std::conditional_t<std::is_const_v<std::remove_reference_t<V>>, const scalar<V>&, scalar<V>&>;
 
-			static type on(V&& v)
+			static constexpr type on(V&& v)
 			{
 				static_assert(I < dim<V>, "Index must be lower than vector dimension");
 				return v[I];
@@ -346,9 +346,12 @@ namespace uv
 		struct element_count<First, Rest...> { static constexpr size_t value = 1 + element_count<Rest...>::value; };
 		template <class A, size_t N, int K, class... Rest>
 		struct element_count<Vec<A, N, K>, Rest...> { static constexpr size_t value = N + element_count<Rest...>::value; };
+		template <class T, size_t N, class... Rest>
+		struct element_count<Dir<T, N>, Rest...> { static constexpr size_t value = N + element_count<Rest...>::value; };
 
 		static_assert(element_count<float, float, double>::value == 3);
 		static_assert(element_count<float, Vec<float, 3>>::value == 4);
+
 
 		class Element
 		{
@@ -357,18 +360,18 @@ namespace uv
 			constexpr Element(size_t i) : _i(i) { }
 
 			template <class T> 
-			auto& of(T&& value) const
+			constexpr decltype(auto) of(T&& value) const
 			{
-				if constexpr (dim<T> == 1)
+				if constexpr (is_scalar_v<T>)
 					return value;
 				else
 					return value[_i];
 			}
 		};
 
-		inline void write_vector(void*) { }
+		inline constexpr void write_vector(void*) { }
 		template <class T, class First, class... Rest>
-		void write_vector(T* dst, const First& first, const Rest&... rest)
+		void constexpr write_vector(T* dst, const First& first, const Rest&... rest)
 		{
 			for (size_t i = 0; i < dim<First>; ++i, ++dst)
 				*dst = T(Element(i).of(first));
@@ -386,9 +389,9 @@ namespace uv
 			VectorData() = delete;
 			VectorData(const VectorData&) = delete;
 
-			template <int KB>
-			VectorData& operator=(const VectorData<T, N, KB>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = other[i]; return *this; }
-			VectorData& operator=(T value) { for (size_t i = 0; i < N; ++i) (*this)[i] = value;    return *this; }
+
+			template <class S>
+			VectorData& operator=(const S& b) { for (size_t i = 0; i < N; ++i) (*this)[i] = details::Element(i).of(b); return *this; }
 
 			auto begin() { return       iterator{ &_first }; }
 			auto begin() const { return const_iterator{ &_first }; }
@@ -432,35 +435,32 @@ namespace uv
 		template <class T, size_t N>
 		class VectorData<T, N, 1> : public std::array<T, N>
 		{
+			static constexpr std::make_index_sequence<N> indices = {};
+			using Base = std::array<T, N>;
+		
+			template <class S, size_t... I>
+			constexpr VectorData(const S& value, std::integer_sequence<size_t, I...>)
+				: Base{ convert_to<T>::from(details::Element(I).of(value))... }   { }
+			template <class OP, class A, class B, size_t... I>
+			constexpr VectorData(OP&& op, const A& a, const B& b, std::integer_sequence<size_t, I...>)
+				: Base{ convert_to<T>::from(op(details::Element(I).of(a), details::Element(I).of(b)))... }   { }
 		public:
 			VectorData() { }
-
-			VectorData(T value)
-			{
-				for (size_t i = 0; i < N; ++i)
-					(*this)[i] = value;
-			}
-			//template <class... Args, class = std::void_t<if_scalar_t<Args>...>>
-			//constexpr explicit VectorData(Args... args)
-			//{
-			//	static_assert(sizeof...(Args) == N, "invalid number of elements");
-			//	std::array<T, N>::operator=({ T(args)... });
-			//}
-			template <class B, int KB>
-			explicit VectorData(const VectorData<B, N, KB>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = T(other[i]); }
-			template <int KB>
-			VectorData(const VectorData<T, N, KB>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = other[i]; }
-
-			template <int KB>
-			VectorData& operator=(const VectorData<T, N, KB>& other) { for (size_t i = 0; i < N; ++i) (*this)[i] = other[i]; return *this; }
-			VectorData& operator=(T value) { for (size_t i = 0; i < N; ++i) (*this)[i] = value; return *this; }
-
+			constexpr VectorData(const VectorData& b) : VectorData(b, indices) { }
+			template <class... S, class = if_scalars_t<N, S...>>
+			constexpr VectorData(S... s) : Base{ convert_to<T>::from(s)... } { }
+		
+			template <class S>
+			constexpr VectorData(const S& value) : VectorData(value, indices) { }
+			template <class OP, class A, class B, class = std::enable_if_t<!is_scalar_v<OP>>>
+			constexpr VectorData(const OP& op, const A& a, const B& b) : VectorData(op, a, b, indices) { }
+		
 			explicit operator bool() const { for (size_t i = 0; i < N; ++i) if (!(*this)[i]) return false; return true; }
 		};
 	}
 
 	template <size_t... I, class V>
-	details::select_t<V, I...> select(V&& source) { return details::selector<V, I...>::on(std::forward<V>(source)); }
+	constexpr details::select_t<V, I...> select(V&& source) { return details::selector<V, I...>::on(std::forward<V>(source)); }
 
 	template <class T, size_t N, int K>
 	class Vec
@@ -481,79 +481,89 @@ namespace uv
 
 		static constexpr size_t dim = N;
 	private:
+		template <class S, size_t M, int L>
+		friend class Vec;
 		Data _data;
 
-		template <class OP, class S>
-		auto _scalar_apply(S s) const
+		template <class OP, class S, size_t M, int L>
+		constexpr auto _apply(const Vec<S, M, L>& b) const
 		{
-			static_assert(is_scalar_v<S>, "Invalid type for vector operation");
-			OP op;
-			Vec<type::of<OP, T, S>, N> result;
-			for (size_t i = 0; i < N; ++i)
-				result[i] = op((*this)[i], s);
-			return result;
+			static_assert(N == M, "Vector-vector operation requires equal dimensionality");
+
+			return Vec<type::of<OP, T, S>, N>(OP{}, *this, b);
 		}
-		template <class OP, class B, size_t NB, int KB>
-		auto _vector_apply(const Vec<B, NB, KB>& b) const
+		template <class OP, class S, class = if_scalar_t<S>>
+		constexpr auto _apply(S s) const
 		{
-			static_assert(N == NB, "Vector-vector operation requires equal dimensionality");
-			OP op;
-			Vec<type::of<OP, T, B>, N> result;
-			for (size_t i = 0; i < N; ++i)
-				result[i] = op((*this)[i], b[i]);
-			return result;
+			return Vec<type::of<OP, T, S>, N>(OP{}, *this, s);
 		}
+
+		template <class OP, class S, size_t I>
+		constexpr auto _apply(Component<S, I> c) const
+		{
+			using U = type::of<OP, T, S>;
+			if constexpr (I < N)
+			{
+				return Vec<U, N>(OP{}, *this, c);
+			}
+			else
+			{
+				OP op;
+				Vec<U, I+1> result = U(0);
+				for (size_t i = 0; i < N; ++i)
+					result[i] = op((*this)[i], S(0));
+				result[I] = op(T(0), *c);
+				return result;
+			}
+		}
+
+		template <class OP, class A, class B, class = std::enable_if_t<!is_scalar_v<OP>>>
+		constexpr Vec(OP&& op, const A& a, const B& b) : _data(op, a, b) { }
+
+		template <class S>
+		struct conversion_checker
+		{
+			static_assert(std::is_convertible_v<decltype(details::Element(0).of(std::declval<S>())), T>, "Cannot convert from argument type");
+		};
 	public:
 
 		Vec() { }
 
-		Vec(const Vec&) = default;
-		Vec(T s) : _data(s) { }
+		template <class... S, class = if_scalars_t<N, S...>>
+		constexpr Vec(S... s) : _data(s...) { }
 
-		template <class S, size_t M, int L>
-		Vec(const Vec<S, M, L>& b) { *this = b; }
-		template <size_t I>
-		Vec(Component<T, I> c) { *this = c; }
+		constexpr Vec(T value) : _data(value) { }
+		constexpr Vec(const Vec&) = default;
 
-		Vec& operator=(const Vec&) = default;
-		Vec& operator=(T s) { _data = s; }
+		template <class S, class = std::enable_if_t<is_scalar_v<S> || is_vector_v<N, S>>>
+		constexpr Vec(const S& b) : _data((conversion_checker<const S&>{}, b)) { }
 
-		template <class S, size_t M, int L>
-		Vec& operator=(const Vec<S, M, L>& b)
-		{
-			static_assert(N == M, "Vector assignment requires equal dimensionality");
-			for (size_t i = 0; i < N; ++i)
-				(*this)[i] = b[i];
-			return *this;
-		}
-		template <size_t I>
-		Vec& operator=(Component<T, I> c)
-		{
-			static_assert(I < N, "Cannot asign component of higher index than vertex dimensionality");
-			for (size_t i = 0; i < N; ++i)
-				(*this)[i] = i == I ? *c : T(0);
-			return *this;
-		}
+		constexpr Vec& operator=(const Vec&) = default;
 
+		template <class S, class = std::enable_if_t<is_scalar_v<S> || is_vector_v<N, S>>>
+		constexpr Vec& operator=(const S& s) { conversion_checker<const S&>{}; _data = s; return *this; }
 
 		auto begin()       { return _data.begin(); }
 		auto begin() const { return _data.begin(); }
 		auto end()       { return _data.end(); }
 		auto end() const { return _data.end(); }
 
-		      T& operator[](size_t i)       { return _data[i]; }
-		const T& operator[](size_t i) const { return _data[i]; }
+		constexpr       T& operator[](size_t i)       { return _data[i]; }
+		constexpr const T& operator[](size_t i) const { return _data[i]; }
 
 		constexpr size_t size() const { return N; }
 
-		Vec operator-() const { Vec result; for (size_t i = 0; i < N; ++i) result[i] = -(*this)[i]; return result; }
+		friend Vec abs(Vec v) { for (size_t i = 0; i < N; ++i) v[i] = abs(v[i]); return v; }
 
-		friend T sum(const Vec& v) { T s = T(0); for (size_t i = 0; i < N; ++i) s += v[i]; return s; }
 
-		friend type::mul<T> square(const Vec& v) { return sum(v*v); }
+		Vec<T, N> operator-() const { return T(0) - *this; }
+
+		friend constexpr T sum(const Vec& v) { T s = T(0); for (size_t i = 0; i < N; ++i) s += v[i]; return s; }
+
+		friend constexpr type::mul<T> square(const Vec& v) { return sum(v*v); }
 
 		template <class S, size_t M, int L> 
-		friend type::mul<T, S> dot(const Vec& a, const Vec<S, M, L>& b) { return sum(a*b); }
+		friend constexpr auto dot(const Vec& a, const Vec<S, M, L>& b) { return sum(a*b); }
 		
 		template <size_t I> friend T dot(const Vec& v, Axes<I>)
 		{ 
@@ -570,67 +580,53 @@ namespace uv
 			return acos(std::clamp(dot(a, b) / sqrt(square(a)*square(b)), R(-1), R(1)));
 		}
 
-		friend bool isfinite(const Vec& a) { for (size_t i = 0; i < NA; ++i) if (!isfinite(a[i])) return false; return true; }
+		friend bool isfinite(const Vec& a) { for (size_t i = 0; i < N; ++i) if (!isfinite(a[i])) return false; return true; }
 
-		friend Vec abs(const Vec& a)
-		{
-			using namespace std;
-			Vec result;
-			for (size_t i = 0; i < N; ++i)
-				result[i] = abs(a[i]);
-			return result;
-		}
+		template <size_t... I> friend constexpr details::select_t<Vec&, I...> operator*(Vec& v, Axes<I...>) { return select<I...>(v); }
+		template <size_t... I> friend constexpr details::select_t<Vec&, I...> operator*(Axes<I...>, Vec& v) { return select<I...>(v); }
+		template <size_t... I> friend constexpr details::select_t<const Vec&, I...> operator*(const Vec& v, Axes<I...>) { return select<I...>(v); }
+		template <size_t... I> friend constexpr details::select_t<const Vec&, I...> operator*(Axes<I...>, const Vec& v) { return select<I...>(v); }
 
-		template <size_t... I> friend details::select_t<Vec&, I...> operator*(Vec& v, Axes<I...>) { return select<I...>(v); }
-		template <size_t... I> friend details::select_t<Vec&, I...> operator*(Axes<I...>, Vec& v) { return select<I...>(v); }
-		template <size_t... I> friend details::select_t<const Vec&, I...> operator*(const Vec& v, Axes<I...>) { return select<I...>(v); }
-		template <size_t... I> friend details::select_t<const Vec&, I...> operator*(Axes<I...>, const Vec& v) { return select<I...>(v); }
+		template <class S, size_t I> friend constexpr auto operator*(const Vec& v, Component<S, I> c) { return v[I] * *c; }
+		template <class S, size_t I> friend constexpr auto operator*(Component<S, I> c, const Vec& v) { return *c * v[I]; }
 
-		template <class S, size_t I> friend auto operator*(const Vec& v, Component<S, I> c) { return v[I] * *c; }
-		template <class S, size_t I> friend auto operator*(Component<S, I> c, const Vec& v) { return *c * v[I]; }
+		template <class S, size_t I> friend constexpr auto operator+(const Vec& v, Component<S, I> c) { return v._apply<op::add>(c); }
+		template <class S, size_t I> friend constexpr auto operator-(const Vec& v, Component<S, I> c) { return v._apply<op::sub>(c); }
+		template <class S, size_t I> friend constexpr auto operator+(Component<S, I> c, const Vec& v) { return v._apply<op::rev<op::add>>(c); }
+		template <class S, size_t I> friend constexpr auto operator-(Component<S, I> c, const Vec& v) { return v._apply<op::rev<op::sub>>(c); }
 
-		template <class S, size_t I> friend auto operator+(const Vec& v, Component<S, I> c) { Vec<type::add<T, S>, N> r = v; r[I] = r[I] + *c; return r; }
-		template <class S, size_t I> friend auto operator-(const Vec& v, Component<S, I> c) { Vec<type::add<T, S>, N> r = v; r[I] = r[I] - *c; return r; }
-		template <class S, size_t I> friend auto operator+(Component<S, I> c, const Vec& v) { Vec<type::add<T, S>, N> r = v; r[I] = r[I] + *c; return r; }
-		template <class S, size_t I> friend auto operator-(Component<S, I> c, const Vec& v) { Vec<type::add<T, S>, N> r = -v; r[I] = r[I] + *c; return r; }
 
-		template <class S, class = if_scalar_t<S>> friend auto operator+(const Vec& v, S s) { return v._scalar_apply<op::add>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator-(const Vec& v, S s) { return v._scalar_apply<op::sub>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator*(const Vec& v, S s) { return v._scalar_apply<op::mul>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator/(const Vec& v, S s) { return v._scalar_apply<op::div>(s); }
+		template <class S, class = if_scalar_t<S>> friend constexpr auto operator+(const Vec& v, S s) { return v._apply<op::add>(s); }
+		template <class S, class = if_scalar_t<S>> friend constexpr auto operator-(const Vec& v, S s) { return v._apply<op::sub>(s); }
+		template <class S, class = if_scalar_t<S>> friend constexpr auto operator*(const Vec& v, S s) { return v._apply<op::mul>(s); }
+		template <class S, class = if_scalar_t<S>> friend constexpr auto operator/(const Vec& v, S s) { return v._apply<op::div>(s); }
+		template <class S, class = if_scalar_t<S>> friend constexpr auto operator+(S s, const Vec& v) { return v._apply<op::rev<op::add>>(s); }
+		template <class S, class = if_scalar_t<S>> friend constexpr auto operator-(S s, const Vec& v) { return v._apply<op::rev<op::sub>>(s); }
+		template <class S, class = if_scalar_t<S>> friend constexpr auto operator*(S s, const Vec& v) { return v._apply<op::rev<op::mul>>(s); }
+		template <class S, class = if_scalar_t<S>> friend constexpr auto operator/(S s, const Vec& v) { return v._apply<op::rev<op::div>>(s); }
 
-		template <class S, class = if_scalar_t<S>> friend auto operator==(const Vec& v, S s) { return v._scalar_apply<op::eq>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator!=(const Vec& v, S s) { return v._scalar_apply<op::ne>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator< (const Vec& v, S s) { return v._scalar_apply<op::sl>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator<=(const Vec& v, S s) { return v._scalar_apply<op::le>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator>=(const Vec& v, S s) { return v._scalar_apply<op::ge>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator> (const Vec& v, S s) { return v._scalar_apply<op::sg>(s); }
+		template <class S, class = if_scalar_t<S>> friend auto operator==(const Vec& v, S s) { return v._apply<op::eq>(s); }
+		template <class S, class = if_scalar_t<S>> friend auto operator< (const Vec& v, S s) { return v._apply<op::sl>(s); }
+		template <class S, class = if_scalar_t<S>> friend auto operator==(S s, const Vec& v) { return v._apply<op::rev<op::eq>>(s); }
+		template <class S, class = if_scalar_t<S>> friend auto operator< (S s, const Vec& v) { return v._apply<op::rev<op::sl>>(s); }
 
-		template <class S, class = if_scalar_t<S>> friend auto operator+(S s, const Vec& v) { return v._scalar_apply<op::rev<op::add>>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator-(S s, const Vec& v) { return v._scalar_apply<op::rev<op::sub>>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator*(S s, const Vec& v) { return v._scalar_apply<op::rev<op::mul>>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator/(S s, const Vec& v) { return v._scalar_apply<op::rev<op::div>>(s); }
+		
+		template <class S, size_t M, int L> constexpr auto operator+(const Vec<S, M, L>& v) const { return _apply<op::add>(v); }
+		template <class S, size_t M, int L> constexpr auto operator-(const Vec<S, M, L>& v) const { return _apply<op::sub>(v); }
+		template <class S, size_t M, int L> constexpr auto operator*(const Vec<S, M, L>& v) const { return _apply<op::mul>(v); }
+		template <class S, size_t M, int L> constexpr auto operator/(const Vec<S, M, L>& v) const { return _apply<op::div>(v); }
 
-		template <class S, class = if_scalar_t<S>> friend auto operator==(S s, const Vec& v) { return v._scalar_apply<op::rev<op::eq>>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator!=(S s, const Vec& v) { return v._scalar_apply<op::rev<op::ne>>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator< (S s, const Vec& v) { return v._scalar_apply<op::rev<op::sl>>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator<=(S s, const Vec& v) { return v._scalar_apply<op::rev<op::le>>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator>=(S s, const Vec& v) { return v._scalar_apply<op::rev<op::ge>>(s); }
-		template <class S, class = if_scalar_t<S>> friend auto operator> (S s, const Vec& v) { return v._scalar_apply<op::rev<op::sg>>(s); }
+		template <class V, class = if_vector_t<N, V>> Vec<bool, N> operator==(const V& v) const { return _apply<op::eq>(v); }
+		template <class V, class = if_vector_t<N, V>> Vec<bool, N> operator< (const V& v) const { return _apply<op::sl>(v); }
 
-		template <class S, size_t M, int L> Vec<type::add<S, T>, N> operator+(const Vec<S, M, L>& v) const { return _vector_apply<op::add>(v); }
-		template <class S, size_t M, int L> Vec<type::add<S, T>, N> operator-(const Vec<S, M, L>& v) const { return _vector_apply<op::sub>(v); }
-		template <class S, size_t M, int L> Vec<type::mul<S, T>, N> operator*(const Vec<S, M, L>& v) const { return _vector_apply<op::mul>(v); }
-		template <class S, size_t M, int L> Vec<type::div<S, T>, N> operator/(const Vec<S, M, L>& v) const { return _vector_apply<op::div>(v); }
+		template <class S> Vec& operator+=(const S& v) { *this = *this + v; return *this; }
+		template <class S> Vec& operator-=(const S& v) { *this = *this - v; return *this; }
+		template <class S> Vec& operator*=(const S& v) { *this = *this * v; return *this; }
+		template <class S> Vec& operator/=(const S& v) { *this = *this / v; return *this; }
 
-		template <class S, size_t M, int L> Vec<bool, N> operator==(const Vec<S, M, L>& v) const { return _vector_apply<op::eq>(v); }
-		template <class S, size_t M, int L> Vec<bool, N> operator!=(const Vec<S, M, L>& v) const { return _vector_apply<op::ne>(v); }
-		template <class S, size_t M, int L> Vec<bool, N> operator< (const Vec<S, M, L>& v) const { return _vector_apply<op::sl>(v); }
-		template <class S, size_t M, int L> Vec<bool, N> operator>=(const Vec<S, M, L>& v) const { return _vector_apply<op::le>(v); }
-		template <class S, size_t M, int L> Vec<bool, N> operator<=(const Vec<S, M, L>& v) const { return _vector_apply<op::ge>(v); }
-		template <class S, size_t M, int L> Vec<bool, N> operator> (const Vec<S, M, L>& v) const { return _vector_apply<op::sg>(v); }
+		explicit constexpr operator bool() const { return bool(_data); }
 
-		explicit operator bool() const { return bool(_data); }
+		const T* data() const { return reinterpret_cast<const T*>(&_data); }
 	};
 
 	template <class T, int K = 1> using Vec2 = Vec<T, 2, K>;
@@ -650,16 +646,16 @@ namespace uv
 	using double4 = Vec<double, 4>;
 
 	template <class First, class... Rest>
-	inline Vec<scalar<First>, details::element_count<First, Rest...>::value> vector(const First& first, const Rest&... rest)
+	inline constexpr Vec<scalar<First>, details::element_count<First, Rest...>::value> vector(const First& first, const Rest&... rest)
 	{
-		decltype(vector(first, rest...)) result;
+		decltype(vector(first, rest...)) result = scalar<First>(0);
 		details::write_vector(&result[0], first, rest...);
 		return result;
 	}
 	template <class T, class... Args>
-	inline Vec<T, details::element_count<Args...>::value> vector(Args... args)
+	inline constexpr Vec<T, details::element_count<Args...>::value> vector(Args... args)
 	{
-		decltype(vector<T>(args...)) result;
+		decltype(vector<T>(args...)) result = T(0);
 		details::write_vector(&result[0], args...);
 		return result;
 	}
@@ -679,41 +675,31 @@ namespace uv
 		template <class A, class B, size_t IA, size_t IB>
 		struct component_op
 		{
-			static auto add(Component<A, IA> a, Component<B, IB> b)
+			static constexpr auto add(Component<A, IA> a, Component<B, IB> b)
 			{
 				using T = type::add<A, B>;
-				Vec<T, std::max(IA, IB) + 1> result;
-				for (size_t i = 0; i < result.size(); ++i)
-					switch (i)
-					{
-					case IA: result[i] = *a;
-					case IB: result[i] = *b;
-					default: result[i] = T(0);
-					}
+				Vec<T, std::max(IA, IB) + 1> result = T(0);
+				result[IA] = *a;
+				result[IB] = *b;
 				return result;
 			}
-			static auto sub(Component<A, IA> a, Component<B, IB> b)
+			static constexpr auto sub(Component<A, IA> a, Component<B, IB> b)
 			{
 				using T = type::add<A, B>;
-				Vec<T, std::max(IA, IB) + 1> result;
-				for (size_t i = 0; i < result.size(); ++i)
-					switch (i)
-					{
-					case IA: result[i] = *a;
-					case IB: result[i] = -*b;
-					default: result[i] = T(0);
-					}
+				Vec<T, std::max(IA, IB) + 1> result = T(0);
+				result[IA] = *a;
+				result[IB] = -*b;
 				return result;
 			}
 		};
 		template <class A, class B, size_t I>
 		struct component_op<A, B, I, I>
 		{
-			static auto add(Component<A, I> a, Component<B, I> b)
+			static constexpr auto add(Component<A, I> a, Component<B, I> b)
 			{
 				return Component<type::add<A, B>, I>{ *a + *b };
 			}
-			static auto sub(Component<A, I> a, Component<B, I> b)
+			static constexpr auto sub(Component<A, I> a, Component<B, I> b)
 			{
 				return Component<type::add<A, B>, I>{ *a - *b };
 			}
@@ -734,7 +720,7 @@ namespace uv
 		struct cross_product<2>
 		{
 			template <class A, class B>
-			static auto of(const A& a, const B& b)
+			static constexpr auto of(const A& a, const B& b)
 			{
 				return a[0] * b[1] - a[1] * b[0];
 			}
@@ -743,16 +729,17 @@ namespace uv
 		struct cross_product<3>
 		{
 			template <class A, class B>
-			static auto of(const A& a, const B& b)
+			static constexpr auto of(const A& a, const B& b)
 			{
-				return vector(
+				return Vec3<type::mul<scalar<A>, scalar<B>>>
+				{
 					a[1] * b[2] - a[2] * b[1],
 					a[2] * b[0] - a[0] * b[2],
-					a[0] * b[1] - a[1] * b[0]);
+					a[0] * b[1] - a[1] * b[0]
+				};
 			}
 		};
 	}
-
 
 
 	template <class A, class B, size_t NA, size_t NB, size_t NC, int KA, int KB, int KC>
@@ -841,9 +828,9 @@ namespace uv
 	}
 
 	template <class A, class B, size_t IA, size_t IB>
-	inline auto operator+(Component<A, IA> a, Component<B, IB> b) { return details::component_op<A, B, IA, IB>::add(a, b); }
+	inline constexpr auto operator+(Component<A, IA> a, Component<B, IB> b) { return details::component_op<A, B, IA, IB>::add(a, b); }
 	template <class A, class B, size_t IA, size_t IB>
-	inline auto operator-(Component<A, IA> a, Component<B, IB> b) { return details::component_op<A, B, IA, IB>::sub(a, b); }
+	inline constexpr auto operator-(Component<A, IA> a, Component<B, IB> b) { return details::component_op<A, B, IA, IB>::sub(a, b); }
 
 	template <class A, class B, size_t N, int K, size_t I>
 	auto operator*(Component<B, I> c, const Vec<A, N, K>& v) { return v*c; }
@@ -905,31 +892,28 @@ namespace uv
 	}
 
 	template <class A, class B, size_t N, int KA, int KB>
-	Vec<type::add<A, B>, N> sum(const Vec<A, N, KA>& a, const Vec<B, N, KB>& b) { return a + b; }
+	constexpr Vec<type::add<A, B>, N> sum(const Vec<A, N, KA>& a, const Vec<B, N, KB>& b) { return a + b; }
 	template <class First, class... Rest, size_t N, int KF>
-	auto sum(const Vec<First, N, KF>& first, const Rest&... rest) { return first + sum(rest...); }
+	constexpr auto sum(const Vec<First, N, KF>& first, const Rest&... rest) { return first + sum(rest...); }
 
 	template <class A, class B, size_t NA, size_t NB, int KA, int KB>
-	auto cross(const Vec<A, NA, KA>& u, const Vec<B, NB, KB>& v)
+	constexpr auto cross(const Vec<A, NA, KA>& u, const Vec<B, NB, KB>& v)
 	{
 		static_assert(NA == NB);
 		return details::cross_product<NA>::of(u, v);
 	}
 
-	template <class T, int K> T cross(Axes<0>, const Vec<T, 2, K>& v) { return +v[1]; }
-	template <class T, int K> T cross(Axes<1>, const Vec<T, 2, K>& v) { return -v[0]; }
-	template <class T, int K> T cross(const Vec<T, 2, K>& v, Axes<0>) { return -v[1]; }
-	template <class T, int K> T cross(const Vec<T, 2, K>& v, Axes<1>) { return +v[0]; }
+	template <class A, class B, int K> constexpr auto cross(Component<A, 0> c, const Vec<B, 2, K>& v) { return +*c*v[1]; }
+	template <class A, class B, int K> constexpr auto cross(Component<A, 1> c, const Vec<B, 2, K>& v) { return -*c*v[0]; }
+	template <class A, class B, int K> constexpr auto cross(const Vec<A, 2, K>& v, Component<B, 0> c) { return -*c*v[1]; }
+	template <class A, class B, int K> constexpr auto cross(const Vec<A, 2, K>& v, Component<B, 1> c) { return +*c*v[0]; }
 
-	template <class T, int K> Vec<T, 3> cross(Axes<0>, const Vec<T, 3, K>& a) { return vector<T>(0, -a[2], +a[1]); }
-	template <class T, int K> Vec<T, 3> cross(const Vec<T, 3, K>& a, Axes<0>) { return vector<T>(0, +a[2], -a[1]); }
-	template <class T, int K> Vec<T, 3> cross(Axes<1>, const Vec<T, 3, K>& a) { return vector<T>(+a[2], 0, -a[0]); }
-	template <class T, int K> Vec<T, 3> cross(const Vec<T, 3, K>& a, Axes<1>) { return vector<T>(-a[2], 0, +a[0]); }
-	template <class T, int K> Vec<T, 3> cross(Axes<2>, const Vec<T, 3, K>& a) { return vector<T>(-a[1], +a[0], 0); }
-	template <class T, int K> Vec<T, 3> cross(const Vec<T, 3, K>& a, Axes<2>) { return vector<T>(+a[1], -a[0], 0); }
-
-	template <class V, class B, size_t IB> auto cross(const V& a, Component<B, IB> b) { return cross(a, Axes<IB>{}) * *b; }
-	template <class V, class B, size_t IB> auto cross(Component<B, IB> b, const V& a) { return *b * cross(Axes<IB>{}, a); }
+	template <class A, class B, int K> constexpr auto cross(Component<A, 0> c, const Vec<B, 3, K>& a) { return                   -axes::Y(*c*a[2]) +axes::Z(*c*a[1]); }
+	template <class A, class B, int K> constexpr auto cross(const Vec<A, 3, K>& a, Component<B, 0> c) { return                   +axes::Y(*c*a[2]) -axes::Z(*c*a[1]); }
+	template <class A, class B, int K> constexpr auto cross(Component<A, 1> c, const Vec<B, 3, K>& a) { return +axes::X(*c*a[2])                   -axes::Z(*c*a[0]); }
+	template <class A, class B, int K> constexpr auto cross(const Vec<A, 3, K>& a, Component<B, 1> c) { return -axes::X(*c*a[2])                   +axes::Z(*c*a[0]); }
+	template <class A, class B, int K> constexpr auto cross(Component<A, 2> c, const Vec<B, 3, K>& a) { return -axes::X(*c*a[1]) +axes::Y(*c*a[0]) +axes::Z(A(0)*B(0)); }
+	template <class A, class B, int K> constexpr auto cross(const Vec<A, 3, K>& a, Component<B, 2> c) { return +axes::X(*c*a[1]) -axes::Y(*c*a[0]) +axes::Z(A(0)*B(0)); }
 
 
 
@@ -968,16 +952,26 @@ namespace uv
 	template <class T, size_t N>
 	class Dir : public Vec<T, N>
 	{
-		Dir(const Vec<T, N>& v) : Vec<T, N>(v) { }
+		constexpr const Vec<T, N>& _v() const { return *this; }
+		constexpr Dir(const Vec<T, N>& v) : Vec<T, N>(v) { }
 	public:
+		template <class U, class = if_unit_t<N, U>>
+		Dir(const U& u) : Vec<T, N>(u) { }
+
 		template <int K>
-		static Dir fromUnchecked(const Vec<T, N, K>& v) { return { v }; }
+		static constexpr Dir fromUnchecked(const Vec<T, N, K>& v) { return { v }; }
+
 	};
 	template <class T, size_t N, int K>
 	Dir<T, N> uncheckedDir(const Vec<T, N, K>& v) { return Dir<T, N>::fromUnchecked(v); }
 
-	template <class T, size_t N>
-	struct is_unit<N, Dir<T, N>> : std::true_type { };
+	template <class T> using Dir2 = Dir<T, 2>;
+	template <class T> using Dir3 = Dir<T, 3>;
+	template <class T> using Dir4 = Dir<T, 4>;
+
+	template <class T, size_t N> struct is_unit<N, Dir<T, N>> : std::true_type { };
+	template <class T, size_t N> struct is_unit_any<Dir<T, N>> : std::true_type { };
+	template <class T, size_t N> struct is_vector<N, Dir<T, N>> : std::true_type { };
 
 	template <class T, size_t N, int K>
 	struct Decomposed<Vec<T, N, K>>

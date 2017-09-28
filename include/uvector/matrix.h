@@ -4,16 +4,24 @@
 
 namespace uv
 {
+	template <class U> struct is_matrix : std::false_type { };
+	template <class U> struct is_matrix<U&> : is_matrix<U> { };
+	template <class U> struct is_matrix<const U&> : is_matrix<U> { };
+	template <class U> static constexpr bool is_matrix_v = is_matrix<U>::value;
+
 	template <class T, size_t R, size_t C>
 	class Mat
 	{
+		static constexpr auto column_indices = std::make_index_sequence<C>{};
+		template <class S, size_t RR, size_t CC>
+		friend class Mat;
 	public:
 		using Row    = Vec<T, C, R>;
 		using Column = Vec<T, R, 1>;
 		static_assert(sizeof(Row) == sizeof(T));
 	private:
-		static constexpr size_t D = R < C ? R : C; // diagonal length
-		std::array<Column, R> _columns;
+		static constexpr size_t D = std::min(R, C); // diagonal length
+		std::array<Column, C> _columns;
 
 		      Column& _col(size_t i)       { return _columns[i]; }
 		const Column& _col(size_t i) const { return _columns[i]; }
@@ -24,48 +32,43 @@ namespace uv
 		template <class OP, class S>
 		auto _scalar_apply(S s) const
 		{
-			OP op;
-			Mat<type::of<OP, T, S>, R, C> result;
-			for (size_t i = 0; i < C; ++i)
-				for (size_t j = 0; j < R; ++i)
-					result._columns[i][j] = op(_columns[i][j], s);
-			return result;
+			return Mat<type::of<OP, T, S>, R, C>(OP{}, *this, s, ColumnIndices{});
 		}
 		template <class OP, class S, size_t RB, size_t CB>
 		auto _matrix_apply(const Mat<S, RB, CB>& m) const
 		{
 			static_assert(RB == R && CB == C, "Matrix-matrix by-component operation requires equal matrix dimensions");
-			OP op;
-			Mat<type::of<OP, T, S>, R, C> result;
-			for (size_t i = 0; i < C; ++i)
-				for (size_t j = 0; j < R; ++j)
-					result._columns[i][j] = op(_columns[i][j], m._columns[i][j]);
-			return result;
+			return Mat<type::of<OP, T, S>, R, C>(OP{}, *this, m, ColumnIndices{});
 		}
+
+		template <class V, size_t... I>
+		constexpr Mat(const std::array<V, C>& columns, std::integer_sequence<size_t, I...>)
+			: _columns{ columns[I]... }   { }
+
+		template <class V, size_t... I>
+		constexpr Mat(const V& v, std::integer_sequence<size_t, I...>)
+			: _columns{ (details::Element(I).of(v)*Axes<I>{})... }   { }
+		template <class OP, class A, class B, size_t... I, class = if_scalar_t<B>>
+		constexpr Mat(OP op, const Mat<A, R, C>& a, B b, std::integer_sequence<size_t, I...>)
+			: _columns{ op(a._columns[I], b)... }   { }
+		template <class OP, class A, class B, size_t... I>
+		constexpr Mat(OP op, const Mat<A, R, C>& a, const Mat<B, R, C>& b, std::integer_sequence<size_t, I...>)
+			: _columns{ op(a._columns[I], b._columns[I])... }   { }
 	public:
 		using scalar_type = T;
 		static constexpr struct { size_t R, C; } dim = { R, C };
 
 		Mat() { }
-		Mat(T diagonal) { *this = diagonal; }
-		template <int K>
-		Mat(const Vec<T, D, K>& diagonal) { *this = diagonal; }
+		template <class S> 
+		Mat(const Mat<S, R, C>& b) : Mat(b._columns, column_indices) { }
+		template <class V, class = std::enable_if_t<is_scalar_v<V> || is_vector_v<D, V>>> 
+		constexpr Mat(const V& diagonal) : Mat(diagonal, column_indices) { }
 
-		Mat& operator=(T diagonal)
-		{ 
-			for (size_t i = 0; i < C; ++i)
-				for (size_t j = 0; j < R; ++j)
-					_columns[i][j] = i == j ? diagonal : T(0);
-			return *this;
-		}
-		template <int K>
-		Mat& operator=(const Vec<T, D, K>& diagonal)
-		{
-			for (size_t i = 0; i < C; ++i)
-				for (size_t j = 0; j < R; ++j)
-					_columns[i][j] = i == j ? diagonal[i] : T(0);
-			return *this;
-		}
+		template <class S> Mat& operator=(const Mat<S, R, C>& b) { return *this = Mat(b); }
+		template <class V, class = std::enable_if_t<is_scalar_v<V> || is_vector_v<D, V>>>
+		Mat& operator=(const V& diagonal) { return *this = Mat(diagonal); }
+
+
 		template <class S, class = if_scalar_t<S>> friend Mat<type::mul<T, S>, R, C> operator*(const Mat& m, S s) { return m._scalar_apply<op::mul>(s); }
 		template <class S, class = if_scalar_t<S>> friend Mat<type::mul<S, T>, R, C> operator*(S s, const Mat& m) { return m._scalar_apply<op::mul>(s); }
 		template <class S, class = if_scalar_t<S>> friend Mat<type::div<T, S>, R, C> operator/(const Mat& m, S s) { return m._scalar_apply<op::div>(s); }
@@ -122,6 +125,9 @@ namespace uv
 
 		explicit operator bool() const { for (size_t i = 0; i < R; ++i) if (!_rows[i]) return false; return true; }
 	};
+	template <class T, size_t R, size_t C>
+	struct is_matrix<Mat<T, R, C>> : std::true_type { };
+
 	using float22 = Mat<float, 2, 2>;
 	using float33 = Mat<float, 3, 3>;
 	using float44 = Mat<float, 4, 4>;

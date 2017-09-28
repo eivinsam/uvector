@@ -27,6 +27,18 @@ namespace uv
 	template <size_t N, class T, class R = void>
 	using if_unit_t = std::enable_if_t<is_unit<N, T>::value, R>;
 
+	template <class T> struct is_unit_any : std::false_type { };
+	template <class T> struct is_unit_any<T&> : is_unit_any<T> { };
+	template <class T> struct is_unit_any<const T> : is_unit_any<T> { };
+
+	template <class T>
+	static constexpr bool is_unit_any_v = is_unit_any<T>::value;
+	template <class T, class R = void>
+	using if_unit_any_t = std::enable_if_t<is_unit_any<T>::value, R>;
+
+	template <class S>
+	using if_arithmetic_t = std::enable_if_t<std::is_arithmetic<S>::value>;
+
 	class Pi
 	{
 		double _p;

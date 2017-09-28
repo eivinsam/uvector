@@ -21,16 +21,14 @@ namespace uv
 		Vec<T, N, K> v;
 
 		Point() { }
-		template <int KB>
-		Point(const Point<T, N, KB>& a) : v(a.v) { }
-		template <int KB>
-		explicit Point(const Vec<T, N, KB>& a) : v(a) { }
-
-
-		Point& operator=(Origo) { v = T(0); return *this; }
-
 		constexpr Point(Origo<0>) : v(T(0)) { }
 		constexpr Point(Origo<N>) : v(T(0)) { }
+		template <class S, int KB>
+		constexpr Point(const Point<S, N, KB>& a) : v(a.v) { }
+		template <class... S, class = if_scalars_t<N, S...>>
+		constexpr Point(S... s) : v(s...) { }
+		template <class V, class = if_vector_t<N, V>>
+		explicit constexpr Point(const V& a) : v(a) { }
 
 		Point& operator=(Origo<0>) { v = T(0); return *this; }
 		Point& operator=(Origo<N>) { v = T(0); return *this; }
