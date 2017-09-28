@@ -107,6 +107,9 @@ namespace uv
 		return result;
 	}
 
+	template <class A, class B, class C, size_t NA, size_t NB>
+	auto interpolate(C c, const Point<A, NA>& a, const Point<B, NB>& b) { return origo + interpolate(c, a.v, b.v); }
+
 	template <class... TN, size_t N>
 	auto mean(const Point<TN, N>&... points)
 	{

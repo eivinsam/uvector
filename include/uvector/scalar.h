@@ -258,6 +258,11 @@ namespace uv
 	template <class A, class B>
 	auto distance(const A& a, const B& b) { return length(a - b); }
 
+	template <class A, class B, class C, class = decltype(std::declval<A>()*(1 - std::declval<C>()) + std::declval<B>()*std::declval<C>())>
+	auto interpolate(C c, A a, B b)
+	{
+		return a*(1 - c) + b*c;
+	}
 
 	template <class T>
 	struct Decomposed
