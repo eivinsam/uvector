@@ -5,6 +5,10 @@
 
 namespace uv
 {
+	using std::abs;
+	using std::sqrt;
+	using std::cbrt;
+
 	template <class A, class B> auto operator!=(const A& a, const B& b) { return !(a == b); }
 	template <class A, class B> auto operator> (const A& a, const B& b) { return   b < a;  }
 	template <class A, class B> auto operator<=(const A& a, const B& b) { return !(b < a); }
@@ -214,14 +218,14 @@ namespace uv
 	template <class T, class = if_scalar_t<T>>
 	auto square(T value) { return value*value; }
 
-	using std::sqrt;
-	using std::cbrt;
-
-	template <class T, class = std::enable_if_t<is_scalar_v<T>>> 
-	T length(T value) { using namespace std; return abs(value); }
-
-	template <class T, class = std::enable_if_t<!is_scalar_v<T>>>
-	scalar<T> length(const T& value) { return sqrt(square(value)); }
+	template <class T>
+	auto length(const T& value)
+	{
+		if constexpr (is_scalar_v<T>)
+			return abs(value);
+		else
+			return sqrt(square(value));
+	}
 
 	template <class A, class B>
 	auto distance(const A& a, const B& b) { return length(a - b); }

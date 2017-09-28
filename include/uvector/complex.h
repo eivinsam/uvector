@@ -68,6 +68,12 @@ namespace uv
 	using doublec = Complex<double>;
 }
 
+namespace std
+{
+	template <class T>
+	T abs(uv::Imaginary<T> i) { return abs(i.value); }
+}
+
 #define UVECTOR_COMPLEX_DEFINED
 
 #ifdef UVECTOR_MATRIX_DEFINED
