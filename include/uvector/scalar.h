@@ -4,9 +4,12 @@
 #include <limits>
 #include <ostream>
 #include <cmath>
+#include <cassert>
 
 namespace uv
 {
+	using std::sin;
+	using std::cos;
 	using std::abs;
 	using std::sqrt;
 	using std::cbrt;
@@ -77,71 +80,168 @@ namespace uv
 		static constexpr double from(int v)   { return double(v); }
 	};
 
-	class Pi
+
+	struct weak_double
+	{
+		double value;
+
+		weak_double() = default;
+		template <class S, class = if_arithmetic_t<S>>
+		constexpr weak_double(S v) : value(v) { }
+
+		constexpr weak_double operator+() const { return +value; }
+		constexpr weak_double operator-() const { return -value; }
+
+		template <class S, class = if_arithmetic_t<S>> weak_double& operator+=(S b) { value += b; return *this; }
+		template <class S, class = if_arithmetic_t<S>> weak_double& operator-=(S b) { value -= b; return *this; }
+		template <class S, class = if_arithmetic_t<S>> weak_double& operator*=(S b) { value *= b; return *this; }
+		template <class S, class = if_arithmetic_t<S>> weak_double& operator/=(S b) { value /= b; return *this; }
+
+		constexpr weak_double& operator+=(weak_double b) { value += b.value; return *this; }
+		constexpr weak_double& operator-=(weak_double b) { value -= b.value; return *this; }
+		constexpr weak_double& operator*=(weak_double b) { value *= b.value; return *this; }
+		constexpr weak_double& operator/=(weak_double b) { value /= b.value; return *this; }
+
+		template <class S, class = if_arithmetic_t<S>> friend constexpr weak_double operator+(weak_double a, S b) { return a.value + b; }
+		template <class S, class = if_arithmetic_t<S>> friend constexpr weak_double operator-(weak_double a, S b) { return a.value - b; }
+		template <class S, class = if_arithmetic_t<S>> friend constexpr weak_double operator*(weak_double a, S b) { return a.value * b; }
+		template <class S, class = if_arithmetic_t<S>> friend constexpr weak_double operator/(weak_double a, S b) { return a.value / b; }
+
+		template <class S, class = if_arithmetic_t<S>> friend constexpr weak_double operator+(S a, weak_double b) { return a + b.value; }
+		template <class S, class = if_arithmetic_t<S>> friend constexpr weak_double operator-(S a, weak_double b) { return a - b.value; }
+		template <class S, class = if_arithmetic_t<S>> friend constexpr weak_double operator*(S a, weak_double b) { return a * b.value; }
+		template <class S, class = if_arithmetic_t<S>> friend constexpr weak_double operator/(S a, weak_double b) { return a / b.value; }
+
+		friend constexpr weak_double operator+(weak_double a, weak_double b) { return a.value + b.value; }
+		friend constexpr weak_double operator-(weak_double a, weak_double b) { return a.value - b.value; }
+		friend constexpr weak_double operator*(weak_double a, weak_double b) { return a.value * b.value; }
+		friend constexpr weak_double operator/(weak_double a, weak_double b) { return a.value / b.value; }
+
+		template <class S, class = if_arithmetic_t<S>> friend constexpr bool operator==(weak_double a, S b) { return a.value == b; }
+		template <class S, class = if_arithmetic_t<S>> friend constexpr bool operator< (weak_double a, S b) { return a.value <  b; }
+		template <class S, class = if_arithmetic_t<S>> friend constexpr bool operator==(S a, weak_double b) { return a == b.value; }
+		template <class S, class = if_arithmetic_t<S>> friend constexpr bool operator< (S a, weak_double b) { return a <  b.value; }
+
+		friend constexpr bool operator==(weak_double a, weak_double b) { return a.value == b.value; }
+		friend constexpr bool operator< (weak_double a, weak_double b) { return a.value <  b.value; }
+
+		constexpr operator double() const { return value; }
+		constexpr operator float() const { return float(value); }
+	};
+	template <>
+	struct is_scalar<weak_double> : std::true_type { };
+
+	inline weak_double  abs(weak_double v) { return std::abs(v.value); }
+	inline weak_double sqrt(weak_double v) { return std::sqrt(v.value); }
+	inline weak_double copysign(weak_double value, weak_double sign) { return std::copysign(value.value, sign.value); }
+
+	inline std::ostream& operator<<(std::ostream& out, weak_double v) { return out << v.value; }
+
+	class Angle
 	{
 		double _p;
-		static constexpr int _q = 6;
+		static constexpr int _q = 180;
 
 		static constexpr double pi = 3.1415926535897932384626433832795;
 		static constexpr double sqrth = 0.70710678118654752440084436210485;
 		static constexpr double sqrtt = 0.86602540378443864676372317075294;
 
-		explicit constexpr Pi(double p) : _p(p) { }
+
+		explicit constexpr Angle(double p) : _p(p) { }
 
 		template <class T>
 		using if_arith_t = std::enable_if_t<std::is_arithmetic<T>::value>;
 	public:
-		constexpr Pi() : _p(_q) { }
 
-		constexpr Pi operator-() const { return Pi{ -_p }; }
+		constexpr double _taylor_sin() const
+		{
+			const double x = _p*pi/_q;
+			const double mxx = -x*x;
+			double px = x;
+			double s = px;
+			for (int k = 2; k <= 14; k += 2)
+			{
+				px *= mxx/(k*(k+1));
+				s += px;
+			}
+			return s;
+		}
+		constexpr double _taylor_cos() const
+		{
+			const double x = _p*pi/_q;
+			const double mxx = -x*x;
+			double px = 1;
+			double s = px;
+			for (int k = 2; k <= 14; k += 2)
+			{
+				px *= mxx/(k*(k-1));
+				s += px;
+			}
+			return s;
 
-		template <class T> constexpr friend Pi operator*(Pi p, T c) { return Pi{ p._p*c }; }
-		template <class T> constexpr friend Pi operator*(T c, Pi p) { return Pi{ p._p*c }; }
-		template <class T> constexpr friend Pi operator/(Pi p, T c) { return Pi{ p._p / c }; }
+		}
+		constexpr Angle() : _p(_q) { }
+
+		constexpr Angle operator+() const { return Angle(+_p); }
+		constexpr Angle operator-() const { return Angle(-_p); }
+
+		template <class T> constexpr friend Angle operator*(Angle p, T c) { return Angle{ p._p*c }; }
+		template <class T> constexpr friend Angle operator*(T c, Angle p) { return Angle{ p._p*c }; }
+		template <class T> constexpr friend Angle operator/(Angle p, T c) { return Angle{ p._p / c }; }
 		
-		friend constexpr double operator+(Pi p, Unit) { return double(p) + 1; }
-		friend constexpr double operator-(Pi p, Unit) { return double(p) - 1; }
-		friend constexpr double operator+(Unit, Pi p) { return 1 + double(p); }
-		friend constexpr double operator-(Unit, Pi p) { return 1 - double(p); }
+		constexpr friend Angle operator+(Angle a, Angle b) { return Angle{ a._p + b._p }; }
+		constexpr friend Angle operator-(Angle a, Angle b) { return Angle{ a._p + b._p }; }
+		constexpr friend weak_double operator/(Angle a, Angle b) { return { a._p / b._p }; }
 
-		friend constexpr Pi operator*(Pi p, Unit) { return p; }
-		friend constexpr Pi operator/(Pi p, Unit) { return p; }
-		friend constexpr Pi operator*(Unit, Pi p) { return p; }
-
-		constexpr friend Pi operator+(Pi a, Pi b) { return Pi{ a._p + b._p }; }
-		constexpr friend Pi operator-(Pi a, Pi b) { return Pi{ a._p + b._p }; }
-		constexpr friend double operator/(Pi a, Pi b) { return a._p / b._p; }
-
-		constexpr double sin() const
+		constexpr weak_double sin() const
+		{
+			if (_p * 1< 0) return -Angle(-_p).sin();
+			if (_p * 1 >= _q * 2) return +Angle(_p - _q*2).sin();
+			if (_p * 1 >= _q * 1) return -Angle(_p + _q).sin(); // > 1pi
+			if (_p * 2 > _q * 1) return Angle(_q - _p).sin(); // > pi/2
+			if (_p * 4 > _q * 1) return Angle(_q/2 - _p).cos(); // > pi/4
+			if (_p * 6 == _q) return 0.5;
+			return _taylor_sin();
+		}
+		constexpr weak_double cos() const
+		{
+			if (_p * 1 < 0) return Angle(-_p).cos();
+			if (_p * 1 >= _q * 2) return +Angle(_p - _q*2).cos();
+			if (_p * 1 >= _q * 1) return -Angle(_p + _q).cos();
+			if (_p * 2 > _q * 1) return -Angle(_q - _p).cos();
+			if (_p * 4 > _q * 1) return Angle(_q/2 - _p).sin();
+			return _taylor_cos();
+		}
+		constexpr weak_double tan() const
 		{
 			if (_p == 0) return 0.0; // 0pi
-			if (_p < 0) return -Pi(-_p).sin();
-			if (_p >= _q * 2) return Pi(_p - _q*2).sin();
-			if (_p >= _q) return -Pi(_p + _q).sin(); // > 1pi
-			if (_p * 2 == _q) return 1.0;// pi/2
-			if (_p * 2 > _q) return Pi(_q - _p).sin(); // > pi/2
-			if (_p * 3 == _q) return sqrtt;// pi/3
-			if (_p * 4 == _q) return sqrth;
-			if (_p * 6 == _q) return 0.5;
+			if (_p < 0) return -Angle(-_p).tan();
+			if (_p >= _q) return Angle(_p - _q).tan(); // > 1pi
+			if (_p * 2 > _q) return -Angle(_q - _p).tan(); // > pi/2
+			if (_p * 2 == _q) return inf;// pi/2
+			if (_p * 3 == _q) return sqrtt/0.5;// pi/3
+			if (_p * 4 == _q) return 1.0;
+			if (_p * 6 == _q) return 0.5/sqrtt;
 
-			return std::cos(double(*this));
+			return std::tan(double(*this));
 		}
-		constexpr double cos() const { return Pi(_p + _q/2).sin(); }
+
+		template <class V>
+		constexpr auto about(const V&) const;
 
 		constexpr operator double() const { return _p*pi / _q; }
 		constexpr operator float() const { return float(double(*this)); }
 	};
 	template <>
-	struct is_scalar<Pi> : std::true_type { };
-}
-namespace std
-{
-	constexpr double sin(uv::Pi a) { return a.sin(); }
-	constexpr double cos(uv::Pi a) { return a.cos(); }
-}
-namespace uv
-{
-	static constexpr Pi pi = {};
+	struct is_scalar<Angle> : std::true_type { };
+
+	constexpr weak_double sin(uv::Angle a) { return a.sin(); }
+	constexpr weak_double cos(uv::Angle a) { return a.cos(); }
+	constexpr weak_double tan(uv::Angle a) { return a.tan(); }
+
+	static constexpr Angle pi = {};
+
+	static constexpr auto degrees = pi/180;
 
 	namespace details
 	{

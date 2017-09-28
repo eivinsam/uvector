@@ -132,6 +132,10 @@ namespace uv
 	template <class U, class T>
 	constexpr Rot2<U> rotation(T angle) { return { Dir2<U>::fromUnchecked(Vec2<U>(U(cos(angle)), U(sin(angle)))) }; }
 
+	template <class T> constexpr auto operator*(Rot2<T> r, Angle a) { return r * rotation(a); }
+	template <class T> constexpr auto operator*(Angle a, Rot2<T> r) { return rotation(a) * r; }
+
+
 	// A rotation in three dimensions represented as a unit quaternion
 	template <class T>
 	class Rot3
@@ -218,7 +222,13 @@ namespace uv
 
 	template <class V, class = if_vector_t<3, V>>
 	Rot3<scalar<V>> rotation(const V& v) { const auto c = decompose(v); return rotation(c.length).about(c.direction); }
+
+	template <class V>
+	constexpr auto Angle::about(const V& axis) const
+	{
+		return Rot3<weak_double>::fromUnchecked(quaternion((*this/2).cos(), (*this/2).sin()*axis));
 	}
+
 }
 
 #define UVECTOR_ROTATION_DEFINED
