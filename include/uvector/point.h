@@ -4,8 +4,12 @@
 
 namespace uv
 {
+	template <size_t N>
 	struct Origo { };
-	static constexpr Origo origo = {};
+	static constexpr Origo<0> origo = {};
+	static constexpr Origo<2> origo2 = {};
+	static constexpr Origo<3> origo3 = {};
+	static constexpr Origo<4> origo4 = {};
 
 	template <class T, size_t N, int K = 1>
 	class Point
@@ -17,7 +21,6 @@ namespace uv
 		Vec<T, N, K> v;
 
 		Point() { }
-		Point(Origo) : v(T(0)) { }
 		template <int KB>
 		Point(const Point<T, N, KB>& a) : v(a.v) { }
 		template <int KB>
@@ -26,12 +29,23 @@ namespace uv
 
 		Point& operator=(Origo) { v = T(0); return *this; }
 
-		Vec<T, N> operator-(Origo) const { return -v; }
+		constexpr Point(Origo<0>) : v(T(0)) { }
+		constexpr Point(Origo<N>) : v(T(0)) { }
+
+		Point& operator=(Origo<0>) { v = T(0); return *this; }
+		Point& operator=(Origo<N>) { v = T(0); return *this; }
+
+		friend const Vec<T, N, K>& operator-(const Point& p, Origo<0>) { return  p.v; }
+		friend const Vec<T, N, K>& operator-(const Point& p, Origo<N>) { return  p.v; }
+		friend       Vec<T, N>     operator-(Origo<0>, const Point& p) { return -p.v; }
+		friend       Vec<T, N>     operator-(Origo<N>, const Point& p) { return -p.v; }
 
 		friend bool isfinite(const Point& p) { return isfinite(p.v); }
 
-		friend T distance(const Point& p, Origo) { return length(p.v); }
-		friend T distance(Origo, const Point& p) { return length(p.v); }
+		friend T distance(const Point& p, Origo<0>) { return length(p.v); }
+		friend T distance(const Point& p, Origo<N>) { return length(p.v); }
+		friend T distance(Origo<0>, const Point& p) { return length(p.v); }
+		friend T distance(Origo<N>, const Point& p) { return length(p.v); }
 
 		template <class S> friend auto distance(const Point& a, const Point<S, N>& b) { return distance(a.v, b.v); }
 
@@ -76,8 +90,13 @@ namespace uv
 
 	template <class T, size_t N, int K> const Point<T, N, K>& point(const Vec<T, N, K>& d) { return reinterpret_cast<const Point<T, N, K>&>(d); }
 
-	template <class T, size_t N, int K> const Point<T, N, K>& operator+(const Vec<T, N, K>& v, Origo) { return reinterpret_cast<const Point<T, N, K>&>(v); }
-	template <class T, size_t N, int K> const Point<T, N, K>& operator+(Origo, const Vec<T, N, K>& v) { return reinterpret_cast<const Point<T, N, K>&>(v); }
+	template <class T, size_t N, int K> const Point<T, N, K>& operator+(const Vec<T, N, K>& v, Origo<0>) { return reinterpret_cast<const Point<T, N, K>&>(v); }
+	template <class T, size_t N, int K> const Point<T, N, K>& operator+(const Vec<T, N, K>& v, Origo<N>) { return reinterpret_cast<const Point<T, N, K>&>(v); }
+	template <class T, size_t N, int K> const Point<T, N, K>& operator+(Origo<0>, const Vec<T, N, K>& v) { return reinterpret_cast<const Point<T, N, K>&>(v); }
+	template <class T, size_t N, int K> const Point<T, N, K>& operator+(Origo<N>, const Vec<T, N, K>& v) { return reinterpret_cast<const Point<T, N, K>&>(v); }
+
+	template <class T, size_t I, size_t N> constexpr Point<T, N> operator+(const Component<T, I>& c, Origo<N> o) { return Vec<T, N>(c) + o; }
+	template <class T, size_t I, size_t N> constexpr Point<T, N> operator+(Origo<N> o, const Component<T, I>& c) { return o + Vec<T, N>(c); }
 
 	template <class A, class B, size_t NA, size_t NB, size_t NC, int KC>
 	auto ifelse(const Vec<bool, NC, KC>& cond, const Point<A, NA>& a, const Point<B, NB>& b)
