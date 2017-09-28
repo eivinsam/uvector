@@ -97,7 +97,7 @@ namespace uv
 			return { _value * c._value };
 		}
 
-		const T operator[](size_t i) const { return i == I ? _value : T(0); }
+		constexpr const T operator[](size_t i) const { return i == I ? _value : T(0); }
 	};
 	template <size_t N, class T, size_t I>
 	struct is_vector<N, Component<T, I>> { static constexpr bool value = I < N; };
