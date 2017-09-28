@@ -989,7 +989,17 @@ namespace uv
 		template <int K>
 		static constexpr Dir fromUnchecked(const Vec<T, N, K>& v) { return { v }; }
 
+		friend constexpr Vec<T, N> operator+(const Vec<T, N>& v, const Dir& d) { return v + d._v(); }
+		friend constexpr Vec<T, N> operator+(const Dir& d, const Vec<T, N>& v) { return d._v() + v; }
+
+		constexpr Vec<T, N> operator+(const Dir& b) const { return _v() + b._v(); }
+
+		constexpr const T& operator[](size_t i) const { return Vec<T, N>::operator[](i); }
+
+		template <size_t I> friend constexpr const T& operator*(const Dir& d, Axes<I>) { return d[I]; }
+		template <size_t I> friend constexpr const T& operator*(Axes<I>, const Dir& d) { return d[I]; }
 	};
+	
 	template <class T, size_t N, int K>
 	Dir<T, N> uncheckedDir(const Vec<T, N, K>& v) { return Dir<T, N>::fromUnchecked(v); }
 
