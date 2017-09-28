@@ -155,12 +155,22 @@ namespace uv
 
 		static constexpr Rot3 fromUnchecked(const Quat<T>& q) { /*Expects(nearUnit(q));*/ return { q }; }
 
-		template <class S, int K> friend Vec3<type::mul<T, S>> operator*(const Rot3& r, const Vec3<S, K>& v) { return r._q * v; }
-		template <class S, int K> friend Vec3<type::mul<S, T>> operator*(const Vec3<S, K>& v, const Rot3& r) { return v * r._q; }
+		template <class V, class = if_vector_t<3, V>> friend auto operator*(const Rot3& r, const V& v)
+		{
+			if constexpr (is_unit_v<3, V>)
+				return uncheckedDir(r._q * v);
+			else
+				return r._q * v;
+		}
+		template <class V, class = if_vector_t<3, V>> friend auto operator*(const V& v, const Rot3& r)
+		{
+			if constexpr (is_unit_v<3, V>)
+				return uncheckedDir(v * r._q);
+			else
+				return v * r._q;
+		}
 
 		template <class S> constexpr Rot3<type::mul<T, S>> operator*(const Rot3<S>& rb) const { return { _q * rb._q }; }
-		template <size_t I> friend Dir<T, 3> operator*(const Rot3& r, Axes<I> a) { return uncheckedDir(r._q * a); }
-		template <size_t I> friend Dir<T, 3> operator*(Axes<I> a, const Rot3& r) { return uncheckedDir(a * r._q); }
 
 		Rot3& operator*=(const Rot3& rb) { *this = *this * rb; return *this; }
 	};

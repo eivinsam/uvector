@@ -47,8 +47,6 @@ namespace uv
 
 		template <class S> friend auto distance(const Point& a, const Point<S, N>& b) { return distance(a.v, b.v); }
 
-		template <class S, int K> friend type::mul<T, S> dot(const Point& a, const Vec<S, N, K>& b) { return dot(a.v, b); }
-		template <class S, int K> friend type::mul<S, T> dot(const Vec<S, N, K>& a, const Point& b) { return dot(a, b.v); }
 
 		template <size_t I> friend decltype(auto) operator*(const Point& p, Axes<I> a) { return p.v * a; }
 		template <size_t I> friend decltype(auto) operator*(Axes<I> a, const Point& p) { return a * p.v; }
@@ -60,9 +58,6 @@ namespace uv
 		template <class S, class = if_scalar_t<S>> friend auto operator-(const Point& p, S s) { return Point<type::add<T, S>, N>(p.v - s); }
 		template <class S, class = if_scalar_t<S>> friend auto operator+(S s, const Point& p) { return Point<type::add<T, S>, N>(s + p.v); }
 
-		template <class S, int K> friend auto operator+(const Point& p, const Vec<S, N, K>& d) { return Point<type::add<T, S>, N>(p.v + d); }
-		template <class S, int K> friend auto operator+(const Vec<S, N, K>& d, const Point& p) { return Point<type::add<T, S>, N>(d + p.v); }
-		template <class S, int K> friend auto operator-(const Point& p, const Vec<S, N, K>& d) { return Point<type::add<T, S>, N>(p.v - d); }
 		template <class S>        friend auto operator-(const Point& a, const Point<S, N>& b) { return a.v - b.v; }
 
 		template <class S> Vec<bool, N> operator==(const Point<S, N>& b) const { return v == b.v; }
@@ -83,6 +78,13 @@ namespace uv
 	template <class T, size_t N> auto& point(const Vec<T, N>& d) { return reinterpret_cast<const Point<T, N>&>(d); }
 
 	template <class T, size_t N, int K> const Point<T, N, K>& point(const Vec<T, N, K>& d) { return reinterpret_cast<const Point<T, N, K>&>(d); }
+
+	template <class T, size_t N, int K, class V, class = if_vector_t<N, V>> type::mul<T, scalar<V>> dot(const Point<T, N, K>& a, const V& b) { return dot(a.v, b); }
+	template <class T, size_t N, int K, class V, class = if_vector_t<N, V>> type::mul<scalar<V>, T> dot(const V& a, const Point<T, N, K>& b) { return dot(a, b.v); }
+
+	template <class T, size_t N, int K, class V, class = if_vector_t<N, V>> auto operator+(const Point<T, N, K>& p, const V& d) { return Point<type::add<T, scalar<V>>, N>(p.v + d); }
+	template <class T, size_t N, int K, class V, class = if_vector_t<N, V>> auto operator+(const V& d, const Point<T, N, K>& p) { return Point<type::add<T, scalar<V>>, N>(d + p.v); }
+	template <class T, size_t N, int K, class V, class = if_vector_t<N, V>> auto operator-(const Point<T, N, K>& p, const V& d) { return Point<type::add<T, scalar<V>>, N>(p.v - d); }
 
 	template <class T, size_t N, int K> const Point<T, N, K>& operator+(const Vec<T, N, K>& v, Origo<0>) { return reinterpret_cast<const Point<T, N, K>&>(v); }
 	template <class T, size_t N, int K> const Point<T, N, K>& operator+(const Vec<T, N, K>& v, Origo<N>) { return reinterpret_cast<const Point<T, N, K>&>(v); }

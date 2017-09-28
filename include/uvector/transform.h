@@ -15,12 +15,16 @@ namespace uv
 
 		Trans3() = delete;
 		Trans3(Identity I) : r(I), t(T(0)) { }
+		template <class W>
+		Trans3(const Rot3<W>& r) : r(r), t(T(0)) { }
 		template <class V, class = if_vector_t<3, V>>
-		Trans3(const Rot3<U>& r, const V& t) : r(r), t(t) { }
+		Trans3(const V& t) : r(identity), t(t) { }
+		template <class W, class V, class = if_vector_t<3, V>>
+		Trans3(const Rot3<W>& r, const V& t) : r(r), t(t) { }
 
 		template <int K>
 		Trans3& operator=(const Vec3<T, K>& translation) { r = 1; t = translation; return *this; }
-		Trans3& operator=(const Rot3<U>& rotation) { r = rotation; t = 0; return *this; }
+		Trans3& operator=(const Rot3<U>& rotation) { r = rotation; t = T(0); return *this; }
 
 		template <class B>        friend auto operator*(Trans3 tf, const Rot3<B>& r)    { return tf *= r; }
 		template <class V, class = if_vector_t<3, V>> 
