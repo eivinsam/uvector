@@ -12,9 +12,11 @@ namespace uv
 		Quat() { }
 		constexpr Quat(const Quat& q) = default;
 		constexpr Quat(Identity) : im(T(1)), re(T(0)) { }
+		template <class S>
+		constexpr Quat(const Quat<S>& q) : im(q.im), re(q.re) { }
 
 		template <class V, class = if_vector_t<3, V>>
-		Quat(T re, const V& im) : im(im), re(re) { }
+		constexpr Quat(T re, const V& im) : im(im), re(re) { }
 
 		friend type::mul<T> square(const Quat& q) { return square(q.re) + square(q.im); }
 		friend Quat conjugate(const Quat& q) { return { q.re, -q.im }; }
@@ -56,7 +58,7 @@ namespace uv
 		template <class S> Quat<type::add<T, S>> operator+(const Quat<S>& b) const { return { re + b.re, im + b.im }; }
 		template <class S> Quat<type::add<T, S>> operator-(const Quat<S>& b) const { return { re - b.re, im - b.im }; }
 		template <class S>
-		Quat<type::mul<T, S>> operator*(const Quat<S>& b) const
+		constexpr Quat<type::mul<T, S>> operator*(const Quat<S>& b) const
 		{
 			return { re * b.re - dot(im, b.im),  re * b.im + b.re * im + cross(im, b.im) };
 		}
@@ -96,11 +98,13 @@ namespace uv
 	template <class T>
 	class Rot2
 	{
+		template <class S>
+		friend class Rot2;
 		Dir<T, 2> _x;
 	public:
 		Rot2() { }
-		Rot2(Identity) : _x(axes::X) { }
-		Rot2(const Dir<T, 2>& x) : _x(x) { }
+		constexpr Rot2(Identity) : _x(axes::X) { }
+		constexpr Rot2(const Dir<T, 2>& x) : _x(x) { }
 
 		friend Rot2 invert(const Rot2& r) { return { uncheckedDir(vector(_x[0], -_x[1])) }; }
 
@@ -112,41 +116,53 @@ namespace uv
 		friend Dir<T, 2> operator*(Axes<0> a, const Rot2& r) { return invert(r) * a; }
 		friend Dir<T, 2> operator*(Axes<1> a, const Rot2& r) { return invert(r) * a; }
 
-		template <class S> Rot2<type::mul<T, S>> operator*(const Rot2<S>& b) { return { uncheckedDir(*this * b._x) }; }
+		template <class S> Rot2& operator*=(const S& b) { *this = *this * b; return *this; }
+
+		template <class S> friend Dir<type::mul<T, S>, 2> operator*(const Rot2& r, const Dir<S, 2>& d) { return uncheckedDir(r * static_cast<const Vec<S, 2>&>(d)); }
+		template <class S> friend Dir<type::mul<S, T>, 2> operator*(const Dir<S, 2>& d, const Rot2& r) { return uncheckedDir(static_cast<const Vec<S, 2>&>(d) * r); }
+
+		template <class S> Rot2<type::mul<T, S>> operator*(const Rot2<S>& b) const { return { *this * b._x }; }
 
 		template <class V, class S = type::mul<T, scalar<V>>>
 		Rot3<S> about(const V&) const;
 	};
 
-	template <class T, class U = decltype(std::cos(std::declval<T>()))>
-	Rot2<U> rotation(T angle) { return { Dir<U, 2>::fromUnchecked(vector(std::cos(angle), std::sin(angle))) }; }
+	template <class T, class U = decltype(cos(std::declval<T>()))>
+	constexpr Rot2<U> rotation(T angle) { return { Dir2<U>::fromUnchecked(Vec2<U>(cos(angle), sin(angle))) }; }
 	template <class U, class T>
-	Rot2<U> rotation(T angle) { return { Dir<U, 2>::fromUnchecked(vector(U(std::cos(angle)), U(std::sin(angle)))) }; }
+	constexpr Rot2<U> rotation(T angle) { return { Dir2<U>::fromUnchecked(Vec2<U>(U(cos(angle)), U(sin(angle)))) }; }
 
 	// A rotation in three dimensions represented as a unit quaternion
 	template <class T>
 	class Rot3
 	{
+		template <class S>
+		friend class Rot3;
 		Quat<T> _q;
 
-		Rot3(const Quat<T>& q) : _q(q) { }
+		constexpr Rot3(const Quat<T>& q) : _q(q) { }
+
 	public:
 		Rot3() = delete;
-		Rot3(Identity) : _q(identity) { }
+		constexpr Rot3(Identity) : _q(identity) { }
+		constexpr Rot3(const Rot3& b) : _q(b._q) { }
+		template <class S>
+		constexpr Rot3(const Rot3<S>& b) : _q(b._q) { }
 
 		friend const Quat<T>& quaternion(const Rot3<T>& r) { return r._q; }
 
 		friend Rot3 invert(const Rot3& r) { return { conjugate(r._q) }; }
 
-		static Rot3 fromUnchecked(const Quat<T>& q) { /*Expects(nearUnit(q));*/ return { q }; }
+		static constexpr Rot3 fromUnchecked(const Quat<T>& q) { /*Expects(nearUnit(q));*/ return { q }; }
 
 		template <class S, int K> friend Vec3<type::mul<T, S>> operator*(const Rot3& r, const Vec3<S, K>& v) { return r._q * v; }
 		template <class S, int K> friend Vec3<type::mul<S, T>> operator*(const Vec3<S, K>& v, const Rot3& r) { return v * r._q; }
 
+		template <class S> constexpr Rot3<type::mul<T, S>> operator*(const Rot3<S>& rb) const { return { _q * rb._q }; }
 		template <size_t I> friend Dir<T, 3> operator*(const Rot3& r, Axes<I> a) { return uncheckedDir(r._q * a); }
 		template <size_t I> friend Dir<T, 3> operator*(Axes<I> a, const Rot3& r) { return uncheckedDir(a * r._q); }
 
-		template <class S> Rot3<type::mul<T, S>> operator*(const Rot3<S>& rb) { return { _q * rb._q }; }
+		Rot3& operator*=(const Rot3& rb) { *this = *this * rb; return *this; }
 	};
 
 	template <class T>
@@ -168,7 +184,7 @@ namespace uv
 		static_assert(is_unit_v<3, B>, "Second argument must be a unit vector");
 		using U = type::identity<type::add<scalar<A>, scalar<B>>>;
 		if (square(from - to) < 0.00001f)
-			return Rot3<U>::fromUnchecked(quaternion(U(1), Vec3<U>(0)));
+			return Rot3<U>(identity);
 
 		const auto asa = cross(from, to); // axis * sin(angle)
 		const auto ca = dot(from, to);   // cos(angle)
@@ -187,7 +203,11 @@ namespace uv
 			copysign(sqrt(0.5f - hca), _x[1]) : // accurate around +/-90 degrees:  sin(angle/2) = |sin(angle/2)|*sign(sin(angle))
 			_x[1] / (2 * cha); // sin(angle / 2) = sin(angle) / 2cos(angle/2), from sin(angle) = 2sin(angle/2)cos(angle/2)
 
-		return Rot3<T>::fromUnchecked(quaternion(cha, sha*axis));
+		return Rot3<S>::fromUnchecked(quaternion(cha, sha*axis));
+	}
+
+	template <class V, class = if_vector_t<3, V>>
+	Rot3<scalar<V>> rotation(const V& v) { const auto c = decompose(v); return rotation(c.length).about(c.direction); }
 	}
 }
 
