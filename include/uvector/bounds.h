@@ -7,6 +7,9 @@ namespace uv
 	struct Empty { };
 	static constexpr Empty empty = {};
 
+	template <>
+	struct is_scalar<Empty> : std::true_type { };
+
 	template <class T>
 	struct Bounds;
 
@@ -16,15 +19,18 @@ namespace uv
 		template <class T> struct BoundsOf<T&> : BoundsOf<T> { };
 		template <class T> struct BoundsOf<const T> : BoundsOf<T> { };
 
-		template <class T>
-		struct BoundsOf<Bounds<T>> { using type = Bounds<T>; };
+		template <class T> 
+		struct BoundsOf<Bounds<T>> : BoundsOf<T> { };
 		template <class T, size_t N, int K>
-		struct BoundsOf<Vec<T, N, K>> { using type = Vec<typename BoundsOf<T>::type, N, K>; };
+		struct BoundsOf<Vec<T, N, K>> 
+		{
+			using type = Vec<typename BoundsOf<T>::type, N, K>;
+		};
 	}
 	namespace type
 	{
 		template <class T>
-		using bounds = details::BoundsOf<T>;
+		using bounds = typename details::BoundsOf<T>::type;
 	}
 
 	template <class T> struct is_simple_scalar : is_scalar<T> { };
@@ -34,23 +40,27 @@ namespace uv
 	template <class T>
 	using if_simple_scalar_t = std::enable_if_t<is_simple_scalar<T>::value>;
 
-
+	template <class T, class = if_simple_scalar_t<T>> constexpr T min(T value) { return value; }
+	template <class T, class = if_simple_scalar_t<T>> constexpr T max(T value) { return value; }
 
 	template <class T>
 	struct Bounds
 	{
+		static_assert(std::numeric_limits<T>::is_specialized, "uv::Bounds<T> requires specialization of std::numeric_limits<T>");
+		static constexpr T no_min = std::numeric_limits<T>::has_infinity ?  std::numeric_limits<T>::infinity() : std::numeric_limits<T>::max();
+		static constexpr T no_max = std::numeric_limits<T>::has_infinity ? -std::numeric_limits<T>::infinity() : std::numeric_limits<T>::lowest();
 	private:
-		constexpr Bounds(T min, T max) : min(min), max(max) { }
+		constexpr Bounds(T min, T max) : min(min), max(max) { if (max < min) *this = empty; }
 	public:
 		T min;
 		T max;
 
 		Bounds() = default;
-		constexpr Bounds(T value) { *this = value; }
-		constexpr Bounds(Empty) { *this = empty; }
+		constexpr Bounds(T value) : min(value), max(value) { }
+		constexpr Bounds(Empty) : min(no_min), max(no_max) {}
 
 		constexpr Bounds& operator=(T value) { min = max = value; return *this; }
-		constexpr Bounds& operator=(Empty) { min = T(1); max = T(0); return *this; }
+		constexpr Bounds& operator=(Empty) { min = no_min; max = no_max; return *this; }
 
 		friend T& min(Bounds& b) { return b.min; }
 		friend T& max(Bounds& b) { return b.max; }
@@ -68,21 +78,17 @@ namespace uv
 			return { max(a.min, b.min), min(a.max, b.max) };
 		}
 
-		friend type::add<T> size(const Bounds& b) { return b ? b.max - b.min: type::add<T>(0); }
-
-		friend T mean(const Bounds& b) { return (max(b) + min(b)) / 2; }
-
-		template <class S, class = if_simple_scalar_t<S>> friend constexpr auto operator+(const S& a, const Bounds& b) { return { a + b.min, a + b.max }; }
-		template <class S, class = if_simple_scalar_t<S>> friend constexpr auto operator-(const S& a, const Bounds& b) { return { a - b.max, a - b.min }; }
-		template <class S, class = if_simple_scalar_t<S>> friend constexpr auto operator+(const Bounds& b, const S& a) { return { b.min + a, b.max + a }; }
-		template <class S, class = if_simple_scalar_t<S>> friend constexpr auto operator-(const Bounds& b, const S& a) { return { b.max - a, b.min - a }; }
+		template <class S, class = if_simple_scalar_t<S>> friend constexpr auto operator+(const S& a, const Bounds& b) { return Bounds<type::add<T, S>>{ a + b.min, a + b.max }; }
+		template <class S, class = if_simple_scalar_t<S>> friend constexpr auto operator-(const S& a, const Bounds& b) { return Bounds<type::add<T, S>>{ a - b.max, a - b.min }; }
+		template <class S, class = if_simple_scalar_t<S>> friend constexpr auto operator+(const Bounds& b, const S& a) { return Bounds<type::add<T, S>>{ b.min + a, b.max + a }; }
+		template <class S, class = if_simple_scalar_t<S>> friend constexpr auto operator-(const Bounds& b, const S& a) { return Bounds<type::add<T, S>>{ b.max - a, b.min - a }; }
 
 		template <class A> constexpr Bounds operator-() const { return { -max, -min }; }
 
 		template <class S> constexpr Bounds<type::add<T, S>> operator+(const Bounds<S>& b) const { return { min + b.min, max + b.max }; }
 		template <class S> constexpr Bounds<type::add<T, S>> operator-(const Bounds<S>& b) const { return { min - b.max, max - b.min }; }
-		template <class S> constexpr Bounds<type::mul<T, S>> operator*(const Bounds<S>& b) const { return (max*b) | (min*b); }
-		template <class S> constexpr Bounds<type::div<T, S>> operator/(const Bounds<S>& b) const { return (max / b) | (min / b); }
+		template <class S> constexpr Bounds<type::mul<T, S>> operator*(const Bounds<S>& b) const { return bounds(max * b, min * b); }
+		template <class S> constexpr Bounds<type::div<T, S>> operator/(const Bounds<S>& b) const { return bounds(max / b, min / b); }
 
 
 		      T& operator[](bool i)       { return reinterpret_cast<      T*>(this)[i]; }
@@ -90,10 +96,12 @@ namespace uv
 
 		explicit operator bool() const { return max >= min; }
 	};
-
-
 	using Boundsf = Bounds<float>;
 	using Boundsd = Bounds<double>;
+
+	template <class T> using Bounds2 = Vec<Bounds<T>, 2>;
+	template <class T> using Bounds3 = Vec<Bounds<T>, 3>;
+	template <class T> using Bounds4 = Vec<Bounds<T>, 4>;
 
 	using Bounds2f = Vec<Bounds<float>, 2>;
 	using Bounds3f = Vec<Bounds<float>, 3>;
@@ -107,14 +115,29 @@ namespace uv
 	struct is_scalar<Bounds<T>> : std::true_type { };
 
 	template <class T>
+	type::add<T> span(const Bounds<T>& b) { return b ? b.max - b.min : type::add<T>(0); }
+	template <class T, size_t N, int K>
+	Vec<type::add<T>, N> span(const Vec<Bounds<T>, N, K>& b)
+	{
+		decltype(span(b)) result;
+		for (size_t i = 0; i < N; ++i)
+			result[i] = span(b[i]);
+		return result;
+	}
+
+	template <class T>
+	T mean(const Bounds<T>& b) { return (max(b) + min(b)) / 2; }
+	template <class T, size_t N, int K>
+	Vec<T, N> mean(const Vec<Bounds<T>, N, K>& v) { Vec<T, N> r; for (size_t i = 0; i < N; ++i) r[i] = mean(v[i]); return r; }
+
+	template <class T>
 	type::bounds<T> bounds(const T& last) { return type::bounds<T>(last); }
 	template <class A, class B>
 	type::bounds<type::common<A, B>> bounds(const A& a, const B& b)
 	{
-		auto altb = a < b;
 		type::bounds<type::common<A, B>> result;
-		min(result) = ifelse(altb, a, b);
-		max(result) = ifelse(altb, b, a);
+		min(result) = min(min(a), min(b));
+		max(result) = max(max(a), max(b));
 		return result;
 	}
 

@@ -546,6 +546,8 @@ namespace uv
 
 		friend Vec abs(Vec v) { for (size_t i = 0; i < N; ++i) v[i] = abs(v[i]); return v; }
 
+		friend auto min(const Vec& v) { Vec<std::decay_t<decltype(min(v[0]))>, N> r; for (size_t i = 0; i < N; ++i) r[i] = min(v[i]); return r; }
+		friend auto max(const Vec& v) { Vec<std::decay_t<decltype(max(v[0]))>, N> r; for (size_t i = 0; i < N; ++i) r[i] = max(v[i]); return r; }
 
 		Vec<T, N> operator-() const { return T(0) - *this; }
 
@@ -780,6 +782,8 @@ namespace uv
 		return cond ? type::common<A, B>(a) : type::common<A, B>(b);
 	}
 
+	template <class A, class B> auto min(const A& a, const B& b) { return ifelse(a < b, a, b); }
+	template <class A, class B> auto max(const A& a, const B& b) { return ifelse(b < a, a, b); }
 
 
 	template <class A, class B, size_t N, int K, size_t I>
@@ -843,13 +847,14 @@ namespace uv
 	bool all(const Vec<bool, N, K>& v) { return v[0] & all(rest(v)); }
 
 	template <class T, int K>
-	T maxComponent(const Vec<T, 2, K>& v) { using namespace std; return max(v[0], v[1]); }
+	T maxComponent(const Vec<T, 2, K>& v) { return max(v[0], v[1]); }
 	template <class T, size_t N, int K>
-	T maxComponent(const Vec<T, N, K>& v) { using namespace std; return max(v[0], maxComponent(rest(v))); }
+	T maxComponent(const Vec<T, N, K>& v) { return max(v[0], maxComponent(rest(v))); }
 	template <class T, int K>
-	T minComponent(const Vec<T, 2, K>& v) { using namespace std; return min(v[0], v[1]); }
+	T minComponent(const Vec<T, 2, K>& v) { return min(v[0], v[1]); }
 	template <class T, size_t N, int K>
-	T minComponent(const Vec<T, N, K>& v) { using namespace std; return min(v[0], minComponent(rest(v))); }
+	T minComponent(const Vec<T, N, K>& v) { return min(v[0], minComponent(rest(v))); }
+
 
 	template <class T, int K>
 	type::mul<T> product(const Vec<T, 2, K>& v) { return v[0] * v[1]; }
