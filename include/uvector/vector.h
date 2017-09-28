@@ -103,16 +103,21 @@ namespace uv
 	struct is_vector<N, Component<T, I>> { static constexpr bool value = I < N; };
 
 	template <size_t I>
-	struct Axes<I> : Component<Unit, I>
+	struct Axes<I> : Component<char, I>
 	{
-		constexpr Axes() : Component<Unit, I>{ Unit{} } { }
+		constexpr Axes() : Component<char, I>{ 1 } { }
 
 		template <size_t... J>
 		constexpr Axes<I, J...> operator|(Axes<J...>) const { return {}; }
 
+		template <size_t J>
+		friend constexpr auto operator+(Axes, Axes<J>) { return Component<char, I>{ 1 } + Component<char, J>{ 1 }; }
+
 		template <class S, class = if_scalar_t<S>> friend constexpr Component<S, I> operator*(Axes, S s) { return { s }; }
 		template <class S, class = if_scalar_t<S>> friend constexpr Component<type::div<int, S>, I> operator/(Axes, S s) { return { 1 / s }; }
 		template <class S, class = if_scalar_t<S>> friend constexpr Component<S, I> operator*(S s, Axes) { return { s }; }
+
+		template <class S, class = if_scalar_t<S>> Component<S, I> operator()(S s) const { return *this * s; }
 	};
 	template <size_t N, size_t I> struct is_vector<N, Axes<I>> { static constexpr bool value = I < N; };
 	template <size_t N, size_t I> struct   is_unit<N, Axes<I>> { static constexpr bool value = I < N; };

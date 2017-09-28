@@ -18,27 +18,9 @@ namespace uv
 	template <class T, class R = void>
 	using if_scalar_t = std::enable_if_t<is_scalar<T>::value, R>;
 
-	struct Unit
-	{
-		constexpr Unit() { }
-
-		template <class T, class = if_scalar_t<T>> friend constexpr T operator+(Unit, T value) { return value + T(1); }
-		template <class T, class = if_scalar_t<T>> friend constexpr T operator-(Unit, T value) { return value - T(1); }
-		template <class T, class = if_scalar_t<T>> friend constexpr T operator*(Unit, T value) { return value; }
-		template <class T, class = if_scalar_t<T>> friend constexpr T operator/(Unit, T value) { return value; }
-		template <class T, class = if_scalar_t<T>> friend constexpr T operator+(T value, Unit) { return T(1) + value; }
-		template <class T, class = if_scalar_t<T>> friend constexpr T operator-(T value, Unit) { return T(1) - value; }
-		template <class T, class = if_scalar_t<T>> friend constexpr T operator*(T value, Unit) { return value; }
-		template <class T, class = if_scalar_t<T>> friend constexpr auto operator/(T value, Unit) { return 1 / value; }
-	};
-	template <>
-	struct is_scalar<Unit> : std::true_type { };
-
 	template <size_t N, class T> struct is_unit : std::false_type { };
 	template <size_t N, class T> struct is_unit<N, T&> : is_unit<N, T> { };
 	template <size_t N, class T> struct is_unit<N, const T> : is_unit<N, T> { };
-	template <>
-	struct is_unit<1, Unit> : std::true_type { };
 
 	template <size_t N, class T>
 	static constexpr bool is_unit_v = is_unit<N, T>::value;
