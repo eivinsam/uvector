@@ -41,6 +41,19 @@ namespace uv
 	template <class T, size_t N, int K>
 	struct is_vector<N, Vec<T, N, K>> : std::true_type { };
 
+	template <size_t N, class... S>
+	struct is_scalars : std::false_type { };
+	template <size_t N, class T, class... S>
+	struct is_scalars<N, T, S...> { static constexpr bool value = is_scalar_v<T> && is_scalars<N-1, S...>::value; };
+	template <>
+	struct is_scalars<0> : std::true_type { };
+	template <size_t N, class... S>
+	static constexpr bool is_scalars_v = is_scalars<N, S...>::value;
+	
+	template <size_t N, class... S>
+	using if_scalars_t = typename std::enable_if<is_scalars<N, S...>::value>::type;
+
+
 	template <size_t... I>
 	struct Axes
 	{
