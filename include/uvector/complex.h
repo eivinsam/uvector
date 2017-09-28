@@ -33,7 +33,7 @@ namespace uv
 		template <class S, class = if_scalar_t<S>> constexpr friend auto operator*(S r, Imaginary i) { return Imaginary<type::mul<S, T>>{ +r * i.value }; }
 		template <class S, class = if_scalar_t<S>> constexpr friend auto operator/(S r, Imaginary i) { return Imaginary<type::div<S, T>>{ -r / i.value }; }
 	};
-	static constexpr Imaginary<Unit> imaginary = {};
+	static constexpr Imaginary<char> imaginary = { 1 };
 
 	template <class T>
 	class Complex
