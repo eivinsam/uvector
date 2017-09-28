@@ -115,6 +115,14 @@ namespace uv
 	{
 		return point(sum(points.v...) / sizeof...(TN));
 	}
+	template <class T, size_t N, int K>
+	std::ostream& operator<<(std::ostream& out, const Point<T, N, K>& v)
+	{
+		out << '(' << v.v[0];
+		for (size_t i = 1; i < N; ++i)
+			out << ", " << v.v[i];
+		return out << ')';
+	}
 }
 
 #define UVECTOR_POINT_DEFINED

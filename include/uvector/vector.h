@@ -1029,6 +1029,16 @@ namespace uv
 
 		Decomposed(const Dir<T, N>& d) : direction(d) { }
 	};
+
+	template <class T, size_t N>
+	std::ostream& operator<<(std::ostream& out, const Dir<T, N>& v)
+	{
+		out << '[' << v[0];
+		for (size_t i = 1; i < N; ++i)
+			out << ", " << v[i];
+		return out << ']';
+	}
+
 }
 
 namespace std

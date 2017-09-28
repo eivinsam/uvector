@@ -2,6 +2,7 @@
 
 #include <type_traits>
 #include <limits>
+#include <ostream>
 #include <cmath>
 
 namespace uv
