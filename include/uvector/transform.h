@@ -54,3 +54,9 @@ namespace uv
 	using Transform3d = Trans3<double>;
 
 }
+
+#define UVECTOR_TRANSFORM_DEFINED
+
+#ifdef UVECTOR_MATRIX_DEFINED
+#include "cross/matrix_transform.h"
+#endif

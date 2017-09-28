@@ -1059,3 +1059,9 @@ namespace std
 		using type = uv::Vec<common_type_t<A, B>, N>;
 	};
 }
+
+#define UVECTOR_VECTOR_DEFINED
+
+#ifdef UVECTOR_OPENGL_DEFINED
+#include "cross/opengl_vector.h"
+#endif
