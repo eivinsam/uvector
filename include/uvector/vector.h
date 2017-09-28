@@ -126,6 +126,8 @@ namespace uv
 	template <size_t N, size_t I> struct   is_unit<N, Axes<I>> { static constexpr bool value = I < N; };
 	template <size_t I> struct   is_unit_any<Axes<I>> : std::true_type { };
 
+	template <size_t I> struct details::Scalar<Axes<I>> { using type = char; };
+
 	namespace axes
 	{
 		static constexpr Axes<> Nought = {};
