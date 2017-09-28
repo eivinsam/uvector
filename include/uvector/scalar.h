@@ -5,6 +5,11 @@
 
 namespace uv
 {
+	template <class A, class B> auto operator!=(const A& a, const B& b) { return !(a == b); }
+	template <class A, class B> auto operator> (const A& a, const B& b) { return   b < a;  }
+	template <class A, class B> auto operator<=(const A& a, const B& b) { return !(b < a); }
+	template <class A, class B> auto operator>=(const A& a, const B& b) { return !(a < b); }
+
 	static constexpr auto inf = std::numeric_limits<float> ::infinity();
 
 	struct Identity { };

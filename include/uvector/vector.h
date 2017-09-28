@@ -186,12 +186,7 @@ namespace uv
 			pointer   operator->() const { return  _ptr; }
 
 			bool operator==(const stride_iterator& other) const { return _ptr == other._ptr; }
-			bool operator!=(const stride_iterator& other) const { return _ptr != other._ptr; }
-
 			bool operator< (const stride_iterator& other) const { return _ptr < other._ptr; }
-			bool operator<=(const stride_iterator& other) const { return _ptr <= other._ptr; }
-			bool operator>=(const stride_iterator& other) const { return _ptr >= other._ptr; }
-			bool operator> (const stride_iterator& other) const { return _ptr > other._ptr; }
 		};
 
 		template <class T>
@@ -230,11 +225,7 @@ namespace uv
 			pointer   operator->() const { return  _ptr; }
 
 			bool operator==(const repeat_iterator& other) const { return _i == other._i; }
-			bool operator!=(const repeat_iterator& other) const { return _i != other._i; }
 			bool operator< (const repeat_iterator& other) const { return _i < other._i; }
-			bool operator<=(const repeat_iterator& other) const { return _i <= other._i; }
-			bool operator>=(const repeat_iterator& other) const { return _i >= other._i; }
-			bool operator> (const repeat_iterator& other) const { return _i > other._i; }
 		};
 
 		template <int...>

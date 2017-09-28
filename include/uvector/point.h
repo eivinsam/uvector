@@ -66,11 +66,7 @@ namespace uv
 		template <class S>        friend auto operator-(const Point& a, const Point<S, N>& b) { return a.v - b.v; }
 
 		template <class S> Vec<bool, N> operator==(const Point<S, N>& b) const { return v == b.v; }
-		template <class S> Vec<bool, N> operator!=(const Point<S, N>& b) const { return v != b.v; }
 		template <class S> Vec<bool, N> operator< (const Point<S, N>& b) const { return v <  b.v; }
-		template <class S> Vec<bool, N> operator<=(const Point<S, N>& b) const { return v <= b.v; }
-		template <class S> Vec<bool, N> operator>=(const Point<S, N>& b) const { return v >= b.v; }
-		template <class S> Vec<bool, N> operator> (const Point<S, N>& b) const { return v >  b.v; }
 	};
 	template <class T> using Pnt2 = Point<T, 2>;
 	template <class T> using Pnt3 = Point<T, 3>;
