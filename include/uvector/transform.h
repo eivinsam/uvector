@@ -53,8 +53,4 @@ namespace uv
 	using Transform3f = Trans3<float>;
 	using Transform3d = Trans3<double>;
 
-	template <class V, class = if_vector_t<3, V>> auto transform(const V& t) { return Trans3<scalar<V>>{ identity, t }; }
-	template <class V, class = if_vector_t<3, V>> auto transform(const Rot3<type::identity<scalar<V>>>& r, const V& t) { return Trans3<scalar<V>>{r, t}; }
-	template <class T>        Trans3<T> transform(const Rot3<type::identity<T>>& r)                    { return { r, 0 }; }
-	template <class T, int K> Trans3<T> transform(const Rot3<type::identity<T>>& r, const Vec3<T, K>& t) { return { r, t }; }
 }
