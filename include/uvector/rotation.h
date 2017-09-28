@@ -21,13 +21,13 @@ namespace uv
 
 		Quat operator-() const { return { -re, -im }; }
 
-		template <class S, class = if_scalar_t<S>> friend Quat<type::add<T, S>> operator+(const Quat& q, S s) { return { q.re + s, q.im }; }
-		template <class S, class = if_scalar_t<S>> friend Quat<type::add<T, S>> operator-(const Quat& q, S s) { return { q.re - s, q.im }; }
-		template <class S, class = if_scalar_t<S>> friend Quat<type::mul<T, S>> operator*(const Quat& q, S s) { return { q.re * s, q.im * s }; }
-		template <class S, class = if_scalar_t<S>> friend Quat<type::div<T, S>> operator/(const Quat& q, S s) { return { q.re / s, q.im / s }; }
-		template <class S, class = if_scalar_t<S>> friend Quat<type::add<S, T>> operator+(S s, const Quat& q) { return { s + q.re, q.im }; }
-		template <class S, class = if_scalar_t<S>> friend Quat<type::add<S, T>> operator-(S s, const Quat& q) { return { s - q.re, -q.im }; }
-		template <class S, class = if_scalar_t<S>> friend Quat<type::mul<S, T>> operator*(S s, const Quat& q) { return { s * q.re, s * q.im }; }
+		template <class S, class = if_scalar_t<S>> friend auto operator+(const Quat& q, S s) { return Quat<type::add<T, S>>{ q.re + s, q.im }; }
+		template <class S, class = if_scalar_t<S>> friend auto operator-(const Quat& q, S s) { return Quat<type::add<T, S>>{ q.re - s, q.im }; }
+		template <class S, class = if_scalar_t<S>> friend auto operator*(const Quat& q, S s) { return Quat<type::mul<T, S>>{ q.re * s, q.im * s }; }
+		template <class S, class = if_scalar_t<S>> friend auto operator/(const Quat& q, S s) { return Quat<type::div<T, S>>{ q.re / s, q.im / s }; }
+		template <class S, class = if_scalar_t<S>> friend auto operator+(S s, const Quat& q) { return Quat<type::add<S, T>>{ s + q.re, q.im }; }
+		template <class S, class = if_scalar_t<S>> friend auto operator-(S s, const Quat& q) { return Quat<type::add<S, T>>{ s - q.re, -q.im }; }
+		template <class S, class = if_scalar_t<S>> friend auto operator*(S s, const Quat& q) { return Quat<type::mul<S, T>>{ s * q.re, s * q.im }; }
 
 		template <class S, int K>
 		friend Vec<type::mul<T, S>, 3> operator*(const Quat& q, const Vec<S, 3, K>& v)

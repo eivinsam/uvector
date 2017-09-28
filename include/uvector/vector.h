@@ -86,9 +86,9 @@ namespace uv
 
 		constexpr Component operator-() const { return Component{ -_value }; }
 
-		template <class S, class = if_scalar_t<S>> friend constexpr Component<type::mul<T, S>, I> operator*(Component c, S s) { return { c._value * s }; }
-		template <class S, class = if_scalar_t<S>> friend constexpr Component<type::div<T, S>, I> operator/(Component c, S s) { return { c._value / s }; }
-		template <class S, class = if_scalar_t<S>> friend constexpr Component<type::mul<S, T>, I> operator*(S s, Component c) { return { s * c._value }; }
+		template <class S, class = if_scalar_t<S>> friend constexpr auto operator*(Component c, S s) { return Component<type::mul<T, S>, I>{ c._value * s }; }
+		template <class S, class = if_scalar_t<S>> friend constexpr auto operator/(Component c, S s) { return Component<type::div<T, S>, I>{ c._value / s }; }
+		template <class S, class = if_scalar_t<S>> friend constexpr auto operator*(S s, Component c) { return Component<type::mul<S, T>, I>{ s * c._value }; }
 
 		template <class S, size_t J>
 		constexpr Component<type::mul<T, S>, I> operator*(Component<S, J> c)
@@ -560,9 +560,9 @@ namespace uv
 			static_assert(I < N, "Cannot dot vector with higher-dimensional axis");
 			return v[I]; 
 		}
-		template <size_t I> friend T dot(Axes<I> a, const Vec& v) { return v*a; }
-		template <class S, size_t I> friend type::mul<T, S> dot(const Vec& v, Component<S, I> c) { return (v*Axes<I>{0}) * *c; }
-		template <class S, size_t I> friend type::mul<S, T> dot(const Vec& v, Component<S, I> c) { return *c * (Axes<I>{0}*v); }
+		template <size_t I> friend constexpr T dot(Axes<I> a, const Vec& v) { return v*a; }
+		template <class S, size_t I> friend constexpr auto dot(const Vec& v, Component<S, I> c) { return (v*Axes<I>{}) * *c; }
+		template <class S, size_t I> friend constexpr auto dot(Component<S, I> c, const Vec& v) { return *c * (Axes<I>{}*v); }
 
 		template <class S, size_t M, int L> friend auto angle(const Vec& a, const Vec<S, M, L>& b)
 		{
