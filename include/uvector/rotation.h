@@ -114,8 +114,8 @@ namespace uv
 
 		template <class S> Rot2<type::mul<T, S>> operator*(const Rot2<S>& b) { return { uncheckedDir(*this * b._x) }; }
 
-		template <class V>
-		Rot3<T> about(const V&) const;
+		template <class V, class S = type::mul<T, scalar<V>>>
+		Rot3<S> about(const V&) const;
 	};
 
 	template <class T, class U = decltype(std::cos(std::declval<T>()))>
@@ -177,13 +177,15 @@ namespace uv
 	}
 
 	template <class T>
-	template <class V>
-	Rot3<T> Rot2<T>::about(const V& axis) const
+	template <class V, class S>
+	Rot3<S> Rot2<T>::about(const V& axis) const
 	{
 		static_assert(is_unit_v<3, V>, "Argument must be a unit vector");
 		const auto hca = _x[0] * 0.5f; // cos(angle) / 2
-		const auto cha = copysign(sqrt(0.5f + hca), _x[1]); // cos(angle / 2) = |cos(angle / 2)|*sign(sin(angle))
-		const auto sha = sqrt(0.5f - hca); // sin(angle / 2)
+		const auto cha = sqrt(0.5f + hca); // cos(angle / 2)
+		const auto sha = cha < 0.1f ?
+			copysign(sqrt(0.5f - hca), _x[1]) : // accurate around +/-90 degrees:  sin(angle/2) = |sin(angle/2)|*sign(sin(angle))
+			_x[1] / (2 * cha); // sin(angle / 2) = sin(angle) / 2cos(angle/2), from sin(angle) = 2sin(angle/2)cos(angle/2)
 
 		return Rot3<T>::fromUnchecked(quaternion(cha, sha*axis));
 	}
