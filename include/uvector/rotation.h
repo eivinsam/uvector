@@ -157,6 +157,8 @@ namespace uv
 
 		friend Rot3 invert(const Rot3& r) { return { conjugate(r._q) }; }
 
+		friend Vec3<T> vector(const Rot3& r) { const auto c = decompose(r._q.im); return c.direction * (2*asin(min(T(1), c.length))); }
+
 		static constexpr Rot3 fromUnchecked(const Quat<T>& q) { /*Expects(nearUnit(q));*/ return { q }; }
 
 		template <class V, class = if_vector_t<3, V>> friend auto operator*(const Rot3& r, const V& v)
