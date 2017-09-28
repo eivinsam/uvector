@@ -48,6 +48,33 @@ namespace uv
 	template <class S>
 	using if_arithmetic_t = std::enable_if_t<std::is_arithmetic<S>::value>;
 
+	template <class T, class = void>
+	struct convert_to
+	{
+		template <class S>
+		static constexpr T from(S v) { return { v }; }
+	};
+	template <>
+	struct convert_to<float>
+	{
+		template <class S>
+		static constexpr float from(S v) { return { v }; }
+
+		static constexpr float from(char v)  { return float(v); }
+		static constexpr float from(short v) { return float(v); }
+		static constexpr float from(int v) { assert(int(float(v)) == v); return float(v); }
+	};
+	template <>
+	struct convert_to<double>
+	{
+		template <class S>
+		static constexpr double from(S v) { return { v }; }
+
+		static constexpr double from(char v)  { return double(v); }
+		static constexpr double from(short v) { return double(v); }
+		static constexpr double from(int v)   { return double(v); }
+	};
+
 	class Pi
 	{
 		double _p;
