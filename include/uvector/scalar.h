@@ -245,20 +245,19 @@ namespace uv
 
 	namespace details
 	{
-		template <class T>
-		struct Scalar
-		{
-			static_assert(is_scalar_v<T>, "Type has no scalar type");
-			using type = T;
-		};
+		template <class T, class = void>
+		struct Scalar { };
 		template <class T> struct Scalar<T&> : Scalar<T> { };
 		template <class T> struct Scalar<const T> : Scalar<T> { };
 
+		template <class T>
+		struct Scalar<T, if_scalar_t<T>> { using type = T; };
+
+
 		template <class T, class = void>
-		struct Dim : std::integral_constant<size_t, 1>
-		{
-			static_assert(is_scalar_v<T>, "Type is not a scalar and has no static member dim");
-		};
+		struct Dim { };
+		template <class T>
+		struct Dim<T, if_scalar_t<T>> : std::integral_constant<size_t, 1> { };
 		template <class T>
 		struct Dim<T, std::void_t<decltype(std::decay_t<T>::dim)>>
 		{
