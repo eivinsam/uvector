@@ -63,9 +63,10 @@ namespace uv
 		template <class S> Vec<bool, N> operator==(const Point<S, N>& b) const { return v == b.v; }
 		template <class S> Vec<bool, N> operator< (const Point<S, N>& b) const { return v <  b.v; }
 	};
-	template <class T> using Pnt2 = Point<T, 2>;
-	template <class T> using Pnt3 = Point<T, 3>;
-	template <class T> using Pnt4 = Point<T, 4>;
+
+	template <class T> using Point2 = Point<T, 2>;
+	template <class T> using Point3 = Point<T, 3>;
+	template <class T> using Point4 = Point<T, 4>;
 
 	using Point2f = Point<float, 2>;
 	using Point3f = Point<float, 3>;
