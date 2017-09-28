@@ -917,7 +917,33 @@ namespace uv
 	template <class A, class B, int K> constexpr auto cross(Component<A, 2> c, const Vec<B, 3, K>& a) { return -axes::X(*c*a[1]) +axes::Y(*c*a[0]) +axes::Z(A(0)*B(0)); }
 	template <class A, class B, int K> constexpr auto cross(const Vec<A, 3, K>& a, Component<B, 2> c) { return +axes::X(*c*a[1]) -axes::Y(*c*a[0]) +axes::Z(A(0)*B(0)); }
 
+	namespace details
+	{
+		template <class V>
+		struct ToProject
+		{
+			const V& v;
 
+			// Projects 'v' down to the line through origo in direction 'u'
+			template <class U>
+			auto along(const U& u) const 
+			{ 
+				if constexpr (is_unit_any_v<U>)
+					return v*dot(v, u);
+				else
+					return v*(dot(v, u)/square(u)); 
+			}
+			// Projects 'v' down to the plane through origo with normal 'u', ie. the null space of 'u'
+			template <class U> 
+			auto against(const U& u) const
+			{
+				return v - along(u);
+			}
+		};
+	}
+
+	template <class V>
+	details::ToProject<V> project(const V& v) { return { v }; }
 
 
 	template <size_t N, int K>
