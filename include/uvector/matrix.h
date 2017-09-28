@@ -250,14 +250,14 @@ namespace uv
 
 #define UVECTOR_MATRIX_DEFINED
 
-//#ifdef UVECTOR_COMPLEX_DEFINED
-//#include "cross/matrix_complex.h"
-//#endif
-
 #ifdef UVECTOR_ROTATION_DEFINED
 #include "cross/matrix_rotation.h"
 #endif
 
 #ifdef UVECTOR_POINT_DEFINED
 #include "cross/matrix_point.h"
+#endif
+
+#ifdef UVECTOR_TRANSFORM_DEFINED
+#include "cross/matrix_transform.h"
 #endif
