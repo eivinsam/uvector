@@ -122,28 +122,25 @@ namespace uv
 
 	namespace op
 	{
-		struct add { template <class A, class B> auto operator()(A a, B b) { return a + b; } };
-		struct sub { template <class A, class B> auto operator()(A a, B b) { return a - b; } };
-		struct mul { template <class A, class B> auto operator()(A a, B b) { return a * b; } };
-		struct div { template <class A, class B> auto operator()(A a, B b) { return a / b; } };
+		struct add { template <class A, class B> constexpr auto operator()(A a, B b) const { return a + b; } };
+		struct sub { template <class A, class B> constexpr auto operator()(A a, B b) const { return a - b; } };
+		struct mul { template <class A, class B> constexpr auto operator()(A a, B b) const { return a * b; } };
+		struct div { template <class A, class B> constexpr auto operator()(A a, B b) const { return a / b; } };
 
-		struct bor  { template <class A, class B> auto operator()(A a, B b) { return a | b; } };
-		struct band { template <class A, class B> auto operator()(A a, B b) { return a & b; } };
+		struct eq { template <class A, class B> constexpr auto operator()(A a, B b) const { return a == b; } }; // Equal
+		struct ne { template <class A, class B> constexpr auto operator()(A a, B b) const { return a != b; } }; // Not Equal
+		struct sl { template <class A, class B> constexpr auto operator()(A a, B b) const { return a <  b; } }; // Strictly Less
+		struct le { template <class A, class B> constexpr auto operator()(A a, B b) const { return a <= b; } }; // Equal or Less
+		struct ge { template <class A, class B> constexpr auto operator()(A a, B b) const { return a >= b; } }; // Equal or Greater
+		struct sg { template <class A, class B> constexpr auto operator()(A a, B b) const { return a >  b; } }; // Strictly Greater
 
-		struct eq { template <class A, class B> auto operator()(A a, B b) { return a == b; } }; // Equal
-		struct ne { template <class A, class B> auto operator()(A a, B b) { return a != b; } }; // Not Equal
-		struct sl { template <class A, class B> auto operator()(A a, B b) { return a <  b; } }; // Strictly Less
-		struct le { template <class A, class B> auto operator()(A a, B b) { return a <= b; } }; // Equal or Less
-		struct ge { template <class A, class B> auto operator()(A a, B b) { return a >= b; } }; // Equal or Greater
-		struct sg { template <class A, class B> auto operator()(A a, B b) { return a >  b; } }; // Strictly Greater
-
-		struct min { template <class A, class B> auto operator()(A a, B b) { return a <= b ? a : b; } };
-		struct max { template <class A, class B> auto operator()(A a, B b) { return a >= b ? a : b; } };
+		struct min { template <class A, class B> constexpr auto operator()(A a, B b) const { return a <= b ? a : b; } };
+		struct max { template <class A, class B> constexpr auto operator()(A a, B b) const { return a >= b ? a : b; } };
 
 		template <class OP>
 		struct reverse
 		{
-			struct type { template <class A, class B> auto operator()(A a, B b) { return OP{}(b, a); } };
+			struct type { template <class A, class B> constexpr auto operator()(A a, B b) const { return OP{}(b, a); } };
 		};
 		template <> struct reverse<add> { using type = add; };
 		template <> struct reverse<eq>  { using type = eq; };
