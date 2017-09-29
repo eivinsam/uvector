@@ -11,7 +11,7 @@ namespace uv
 
 		Quat() { }
 		constexpr Quat(const Quat& q) = default;
-		constexpr Quat(Identity) : im(T(1)), re(T(0)) { }
+		constexpr Quat(Identity) : im(T(0)), re(T(1)) { }
 		template <class S>
 		constexpr Quat(const Quat<S>& q) : im(q.im), re(q.re) { }
 
