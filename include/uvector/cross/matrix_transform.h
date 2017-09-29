@@ -11,10 +11,10 @@ namespace uv
 		using namespace axes;
 		auto R = matrix(tf.r);
 		return cols(
-			R*X + 0 * W,
-			R*Y + 0 * W,
-			R*Z + 0 * W,
-			X*(tf.t*X/T(1)) + Y*(tf.t*Y/T(1)) + Z*(tf.t*Z/T(1)) + W);
+			R*X + W(0),
+			R*Y + W(0),
+			R*Z + W(0),
+			tf.t/T(1) + W);
 	}
 
 }
