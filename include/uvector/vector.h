@@ -81,10 +81,15 @@ namespace uv
 		Component() { }
 		constexpr Component(T value) : _value(value) { }
 
+		constexpr Component(const Component& b) : _value(b._value) { }
+
+		constexpr Component& operator=(const Component& b) { _value = b._value; return *this; }
+
 		constexpr       T& operator*() { return _value; }
 		constexpr const T& operator*() const { return _value; }
 
 		constexpr Component operator-() const { return Component{ -_value }; }
+		constexpr Component operator+() const { return Component{ +_value }; }
 
 		template <class S, class = if_scalar_t<S>> friend constexpr auto operator*(Component c, S s) { return Component<type::mul<T, S>, I>{ c._value * s }; }
 		template <class S, class = if_scalar_t<S>> friend constexpr auto operator/(Component c, S s) { return Component<type::div<T, S>, I>{ c._value / s }; }
@@ -97,7 +102,9 @@ namespace uv
 			return { _value * c._value };
 		}
 
-		constexpr const T operator[](size_t i) const { return i == I ? _value : T(0); }
+		template <size_t J>
+		constexpr T operator[](Axes<J>) const { return operator[](J); }
+		constexpr T operator[](size_t i) const { return i == I ? _value : T(0); }
 
 		template <class S> constexpr bool operator==(Component<S, I> b) const { return _value == b._value; }
 		template <class S> constexpr bool operator<(Component<S, I> b) const { return _value < b._value; }
@@ -120,7 +127,7 @@ namespace uv
 		template <class S, class = if_scalar_t<S>> friend constexpr Component<type::div<int, S>, I> operator/(Axes, S s) { return { 1 / s }; }
 		template <class S, class = if_scalar_t<S>> friend constexpr Component<S, I> operator*(S s, Axes) { return { s }; }
 
-		template <class S, class = if_scalar_t<S>> Component<S, I> operator()(S s) const { return *this * s; }
+		template <class S, class = if_scalar_t<S>> constexpr Component<S, I> operator()(S s) const { return *this * s; }
 	};
 	template <size_t N, size_t I> struct is_vector<N, Axes<I>> { static constexpr bool value = I < N; };
 	template <size_t N, size_t I> struct   is_unit<N, Axes<I>> { static constexpr bool value = I < N; };
@@ -260,10 +267,9 @@ namespace uv
 		template <typename... Rest>
 		inline constexpr int delta(size_t first, size_t second, Rest...) { return int(second) - int(first); }
 
-		template <class V, size_t N, size_t I0, int K>
+		template <size_t N, size_t I0, int K>
 		struct slicer
 		{
-			static_assert(std::is_reference_v<V>, "Slicer vector type should be a reference type");
 			static constexpr int Ifirst = int(I0);
 			static constexpr int Ilast = Ifirst + K*(int(N) - 1);
 			static constexpr int Imin = std::min(Ifirst, Ilast);
@@ -271,70 +277,68 @@ namespace uv
 			static_assert(Imin >= 0, "Lowest index must be greater or equal to zero");
 
 			template <class T>
-			struct result { };
-			template <class T> struct result<T&> { using type = typename result<T>::type&; };
-			template <class T> struct result<const T> { using type = const typename result<T>::type; };
-			template <class A, size_t AN, int AK> struct result<Vec<A, AN, AK>> { using type = Vec<A, N, K*AK>; };
+			struct _result { };
+			template <class T> struct _result<T&> { using type = typename _result<T>::type&; };
+			template <class T> struct _result<const T> { using type = const typename _result<T>::type; };
+			template <class A, size_t AN, int AK> struct _result<Vec<A, AN, AK>> { using type = Vec<A, N, K*AK>; };
 
-			using type = typename result<V>::type;
+			template <class V>
+			using result = typename _result<V>::type;
 
-			static constexpr type on(V&& v)
+			template <class V>
+			static constexpr result<V> on(V&& v)
 			{
 				static_assert(Imax < dim<V>, "Highest index must be less than vector dimension");
-				return reinterpret_cast<type>(v[Ifirst]);
+				return reinterpret_cast<result<V>>(v[Ifirst]);
 			}
 		};
-		static_assert(std::is_same_v<slicer<      Vec<int, 4>&, 2, 0, 2>::type,       Vec<int, 2, 2>&>);
-		static_assert(std::is_same_v<slicer<const Vec<int, 4>&, 2, 1, 2>::type, const Vec<int, 2, 2>&>);
 
 		template <size_t N>
 		inline void assert_all_less() { }
 		template <size_t N, size_t First, size_t... Rest>
 		inline void assert_all_less() { static_assert(First < N, "Indices must be less than N"); assert_all_less<N, Rest...>(); }
 
-		template <class V, size_t... I>
-		struct copy_selector { };
-		template <class V, size_t... I>
-		struct copy_selector<V&, I...> : copy_selector<V, I...> { };
-		template <class V, size_t... I>
-		struct copy_selector<const V&, I...> : copy_selector<V, I...> { };
-		template <class T, size_t N, int K, size_t... I>
-		struct copy_selector<Vec<T, N, K>, I...>
+		template <size_t... I>
+		struct copy_selector
 		{
-			using type = Vec<T, sizeof...(I)>;
-			static constexpr type on(const Vec<T, N, K>& v)
+			template <class V>
+			using result = Vec<scalar<V>, sizeof...(I)>;
+			template <class V>
+			static constexpr result<V> on(const V& v)
 			{
-				assert_all_less<N, I...>();
-				return vector( v[I]... );
+				assert_all_less<dim<V>, I...>();
+				return { Element(I).of(v)... };
 			}
 		};
 
 
-		template <class V, int... I>
+		template <size_t... I>
 		struct multiple_selector : public std::conditional_t<is_linear<I...>,
-			slicer<V, sizeof...(I), linear_sequence<I...>::first, linear_sequence<I...>::delta>,
-			copy_selector<V, I...>> { };
+			slicer<sizeof...(I), linear_sequence<I...>::first, linear_sequence<I...>::delta>,
+			copy_selector<I...>> { };
 
-		template <class V, size_t I>
+		template <size_t I>
 		struct single_selector
 		{
-			using type = std::conditional_t<std::is_const_v<std::remove_reference_t<V>>, const scalar<V>&, scalar<V>&>;
+			template <class V>
+			using result = std::conditional_t<std::is_const_v<std::remove_reference_t<V>>, const scalar<V>&, scalar<V>&>;
 
-			static constexpr type on(V&& v)
+			template <class V>
+			static constexpr result<V> on(V&& v)
 			{
 				static_assert(I < dim<V>, "Index must be lower than vector dimension");
 				return v[I];
 			}
 		};
 
-		template <class V, int First, int... Rest>
+		template <int First, int... Rest>
 		struct selector : public std::conditional_t<(sizeof...(Rest) == 0),
-			single_selector<V, First>,
-			multiple_selector<V, First, Rest...>> { };
+			single_selector<First>,
+			multiple_selector<First, Rest...>> { };
 
 
 		template <class V, int... Indices>
-		using select_t = typename selector<V, Indices...>::type;
+		using select_t = typename selector<Indices...>::template result<V>;
 
 
 		template <class...>
@@ -456,9 +460,6 @@ namespace uv
 		};
 	}
 
-	template <size_t... I, class V>
-	constexpr details::select_t<V, I...> select(V&& source) { return details::selector<V, I...>::on(std::forward<V>(source)); }
-
 	template <class T, size_t N, int K>
 	class Vec
 	{
@@ -564,14 +565,10 @@ namespace uv
 		template <class S, size_t M, int L> 
 		friend constexpr auto dot(const Vec& a, const Vec<S, M, L>& b) { return sum(a*b); }
 		
-		template <size_t I> friend T dot(const Vec& v, Axes<I>)
-		{ 
-			static_assert(I < N, "Cannot dot vector with higher-dimensional axis");
-			return v[I]; 
-		}
-		template <size_t I> friend constexpr T dot(Axes<I> a, const Vec& v) { return v*a; }
-		template <class S, size_t I> friend constexpr auto dot(const Vec& v, Component<S, I> c) { return (v*Axes<I>{}) * *c; }
-		template <class S, size_t I> friend constexpr auto dot(Component<S, I> c, const Vec& v) { return *c * (Axes<I>{}*v); }
+		template <size_t I> friend constexpr T dot(const Vec& v, Axes<I>) { static_assert(I < N, "Cannot dot vector with higher-dimensional axis"); return v[I]; }
+		template <size_t I> friend constexpr T dot(Axes<I> a, const Vec& v) { return dot(v, a); }
+		template <class S, size_t I> friend constexpr auto dot(const Vec& v, Component<S, I> c) { return v[I] * *c; }
+		template <class S, size_t I> friend constexpr auto dot(Component<S, I> c, const Vec& v) { return *c * v[I]; }
 
 		template <class S, size_t M, int L> friend auto angle(const Vec& a, const Vec<S, M, L>& b)
 		{
@@ -581,13 +578,11 @@ namespace uv
 
 		friend bool isfinite(const Vec& a) { for (size_t i = 0; i < N; ++i) if (!isfinite(a[i])) return false; return true; }
 
-		template <size_t... I> friend constexpr details::select_t<Vec&, I...> operator*(Vec& v, Axes<I...>) { return select<I...>(v); }
-		template <size_t... I> friend constexpr details::select_t<Vec&, I...> operator*(Axes<I...>, Vec& v) { return select<I...>(v); }
-		template <size_t... I> friend constexpr details::select_t<const Vec&, I...> operator*(const Vec& v, Axes<I...>) { return select<I...>(v); }
-		template <size_t... I> friend constexpr details::select_t<const Vec&, I...> operator*(Axes<I...>, const Vec& v) { return select<I...>(v); }
+		template <size_t... I> constexpr details::select_t<      Vec&, I...> operator[](Axes<I...>)       { return details::selector<I...>::on(*this); }
+		template <size_t... I> constexpr details::select_t<const Vec&, I...> operator[](Axes<I...>) const { return details::selector<I...>::on(*this); }
 
-		template <class S, size_t I> friend constexpr auto operator*(const Vec& v, Component<S, I> c) { return v[I] * *c; }
-		template <class S, size_t I> friend constexpr auto operator*(Component<S, I> c, const Vec& v) { return *c * v[I]; }
+		template <class S, size_t I> friend constexpr auto operator*(const Vec& v, Component<S, I> c) { return v[I] * c; }
+		template <class S, size_t I> friend constexpr auto operator*(Component<S, I> c, const Vec& v) { return c * v[I]; }
 
 		template <class S, size_t I> friend constexpr auto operator+(const Vec& v, Component<S, I> c) { return v._apply<op::add>(c); }
 		template <class S, size_t I> friend constexpr auto operator-(const Vec& v, Component<S, I> c) { return v._apply<op::sub>(c); }
@@ -951,7 +946,7 @@ namespace uv
 	{
 		size_t result = 0;
 		for (size_t i = 0; i < N; ++i)
-			result |= (v[i] << N);
+			result |= (v[i] << i);
 		return result;
 	}
 	static constexpr size_t index() { return 0; };
@@ -996,8 +991,7 @@ namespace uv
 
 		constexpr const T& operator[](size_t i) const { return Vec<T, N>::operator[](i); }
 
-		template <size_t I> friend constexpr const T& operator*(const Dir& d, Axes<I>) { return d[I]; }
-		template <size_t I> friend constexpr const T& operator*(Axes<I>, const Dir& d) { return d[I]; }
+		template <size_t... I> constexpr decltype(auto) operator[](Axes<I...> a) const { return Vec<T, N>::operator[](a); }
 	};
 	
 	template <class T, size_t N, int K>

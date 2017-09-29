@@ -62,32 +62,32 @@ void test_selectors(T& a)
 			CHECK(&sv[k] == &v[*vit]);
 	};
 
-	CHECK(&(a*X) == &a[0]);
-	CHECK(&(a*Y) == &a[1]);
-	CHECK(&(a*Z) == &a[2]);
-	CHECK(&(a*W) == &a[3]);
+	CHECK(&(a[X]) == &a[0]);
+	CHECK(&(a[Y]) == &a[1]);
+	CHECK(&(a[Z]) == &a[2]);
+	CHECK(&(a[W]) == &a[3]);
 
-	check_selector(a*XY, a, { 0, 1 });
-	check_selector(a*YZ, a, { 1, 2 });
-	check_selector(a*ZW, a, { 2, 3 });
-	check_selector(a*WX, a, { 3, 0 });
+	check_selector(a[XY], a, { 0, 1 });
+	check_selector(a[YZ], a, { 1, 2 });
+	check_selector(a[ZW], a, { 2, 3 });
+	check_selector(a[WX], a, { 3, 0 });
 
-	check_selector(a*YX, a, { 1, 0 });
-	check_selector(a*ZY, a, { 2, 1 });
-	check_selector(a*WZ, a, { 3, 2 });
-	check_selector(a*XW, a, { 0, 3 });
+	check_selector(a[YX], a, { 1, 0 });
+	check_selector(a[ZY], a, { 2, 1 });
+	check_selector(a[WZ], a, { 3, 2 });
+	check_selector(a[XW], a, { 0, 3 });
 
-	check_selector(a*XZ, a, { 0, 2 });
-	check_selector(a*YW, a, { 1, 3 });
-	check_selector(a*ZX, a, { 2, 0 });
-	check_selector(a*WY, a, { 3, 1 });
+	check_selector(a[XZ], a, { 0, 2 });
+	check_selector(a[YW], a, { 1, 3 });
+	check_selector(a[ZX], a, { 2, 0 });
+	check_selector(a[WY], a, { 3, 1 });
 
-	check_selector(a*(X|Y|Z), a, { 0, 1, 2 });
-	check_selector(a*(Y|Z|W), a, { 1, 2, 3 });
-	check_selector(a*(Z|Y|X), a, { 2, 1, 0 });
-	check_selector(a*(W|Z|Y), a, { 3, 2, 1 });
+	check_selector(a[X|Y|Z], a, { 0, 1, 2 });
+	check_selector(a[Y|Z|W], a, { 1, 2, 3 });
+	check_selector(a[Z|Y|X], a, { 2, 1, 0 });
+	check_selector(a[W|Z|Y], a, { 3, 2, 1 });
 
-	CHECK(uv::vector(a*Z, a*XY) == a*(Z | XY));
+	CHECK(uv::vector(a[Z], a[XY]) == a[Z | XY]);
 }
 
 template <class T>
@@ -104,17 +104,17 @@ template <class T>
 void test_dot_product(const T& a, const T& b)
 {
 	CHECK_APPROX(dot(a, b) == (a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]));
-	CHECK_APPROX(dot(a*XYZ, b*XYZ) == (a[0] * b[0] + a[1] * b[1] + a[2] * b[2]));
-	CHECK_APPROX(dot(a*XY,  b*XY)    == (a[0] * b[0] + a[1] * b[1]));
-	CHECK_APPROX(dot(a*ZW,  b*ZW) == (a[2] * b[2] + a[3] * b[3]));
+	CHECK_APPROX(dot(a[XYZ], b[XYZ]) == (a[0] * b[0] + a[1] * b[1] + a[2] * b[2]));
+	CHECK_APPROX(dot(a[XY],  b[XY])  == (a[0] * b[0] + a[1] * b[1]));
+	CHECK_APPROX(dot(a[ZW],  b[ZW])  == (a[2] * b[2] + a[3] * b[3]));
 
 }
 template <class T>
 void test_cross_product(const T& a, const T& b)
 {
-	CHECK(cross(a*XYZ, b*XYZ) == uv::vector(a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]));
-	CHECK(cross(a*XY, b*XY) == a[0] * b[1] - a[1] * b[0]);
-	CHECK(cross(a*XYZ, b*XYZ) == uv::vector(cross(a*YZ, b*YZ), cross(a*ZX, b*ZX), cross(a*XY, b*XY)));
+	CHECK(cross(a[XYZ], b[XYZ]) == uv::vector(a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]));
+	CHECK(cross(a[XY],  b[XY]) == a[0] * b[1] - a[1] * b[0]);
+	CHECK(cross(a[XYZ], b[XYZ]) == uv::vector(cross(a[YZ], b[YZ]), cross(a[ZX], b[ZX]), cross(a[XY], b[XY])));
 }
 template <class T>
 void test_decomposition(const T& a)
@@ -166,7 +166,7 @@ void test_bounds(const uv::Vec<T, N>& a, const uv::Vec<T, N>& b, const T c)
 	CHECK(min(abc) == min(min(a, b), c));
 	CHECK(max(abc) == max(max(a, b), c));
 
-	CHECK(min(ab*uv::axes::X) >= min(abc*uv::axes::X));
+	CHECK(min(ab[0]) >= min(abc[0]));
 }
 
 template <class T, size_t N>
@@ -236,7 +236,7 @@ void test_pi()
 void test_quaternion(const uv::Vec<float, 4>& v)
 {
 	tester::presicion = 5e-5f;
-	auto a = 4*signed_unit_float();
+	auto a = 4 * signed_unit_float();
 	auto R = uv::rotation(a).about(Z);
 
 	CHECK_APPROX(R*X == uv::vector<float>(cos(a), sin(a), 0));
@@ -244,7 +244,7 @@ void test_quaternion(const uv::Vec<float, 4>& v)
 	CHECK_APPROX(R*Z == uv::vector<float>(0, 0, 1));
 
 	static_assert(!uv::is_scalar_v<uv::Quat<float>>);
-	CHECK_APPROX(uv::rotation(a).about(direction(v*XYZ)) * (v*XYZ) == v*XYZ);
+	CHECK_APPROX(uv::rotation(a).about(direction(v[XYZ])) * (v[XYZ]) == v[XYZ]);
 
 	tester::presicion = 2e-4f;
 

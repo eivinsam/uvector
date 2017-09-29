@@ -48,13 +48,10 @@ namespace uv
 		template <class S> friend auto distance(const Point& a, const Point<S, N>& b) { return distance(a.v, b.v); }
 
 
-		template <size_t I> friend       T& operator*(      Point& p, Axes<I> a) { return p.v * a; }
-		template <size_t I> friend const T& operator*(const Point& p, Axes<I> a) { return p.v * a; }
-		template <size_t I> friend       T& operator*(Axes<I> a,       Point& p) { return a * p.v; }
-		template <size_t I> friend const T& operator*(Axes<I> a, const Point& p) { return a * p.v; }
+		template <size_t I>       T& operator[](Axes<I> a)       { return v[a]; }
+		template <size_t I> const T& operator[](Axes<I> a) const { return v[a]; }
 
-		template <size_t... I> friend Point<T, sizeof...(I)> operator*(const Point& p, Axes<I...> a) { return point(p.v * a); }
-		template <size_t... I> friend Point<T, sizeof...(I)> operator*(Axes<I...> a, const Point& p) { return point(a * p.v); }
+		template <size_t... I> Point<T, sizeof...(I)> operator[](Axes<I...> a) const { return point(v[a]); }
 
 		template <class S, class = if_scalar_t<S>> friend auto operator+(const Point& p, S s) { return Point<type::add<T, S>, N>(p.v + s); }
 		template <class S, class = if_scalar_t<S>> friend auto operator-(const Point& p, S s) { return Point<type::add<T, S>, N>(p.v - s); }
