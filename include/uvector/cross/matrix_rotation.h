@@ -37,9 +37,9 @@ namespace uv
 		const auto re_im = q.re * d_im;
 
 		return rows(
-			d_im*X*q.im + vector(d, -(re_im*Z), +(re_im*Y)),
-			d_im*Y*q.im + vector(+(re_im*Z), d, -(re_im*X)),
-			d_im*Z*q.im + vector(-(re_im*Y), +(re_im*X), d)
+			d_im[X]*q.im + X*d + cross(X, re_im),
+			d_im[Y]*q.im + Y*d + cross(Y, re_im),
+			d_im[Z]*q.im + Z*d + cross(Z, re_im)
 		);
 	}
 
