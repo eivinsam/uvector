@@ -94,6 +94,10 @@ namespace uv
 	template <class T, size_t I, size_t N> constexpr Point<T, N> operator+(const Component<T, I>& c, Origo<N> o) { return Vec<T, N>(c) + o; }
 	template <class T, size_t I, size_t N> constexpr Point<T, N> operator+(Origo<N> o, const Component<T, I>& c) { return o + Vec<T, N>(c); }
 
+	template <class T, size_t N, int K> Point<T, N, K> operator-(Origo<0>, const Vec<T, N, K>& v) { return origo + -v; }
+	template <class T, size_t N, int K> Point<T, N, K> operator-(Origo<N>, const Vec<T, N, K>& v) { return origo + -v; }
+
+
 	template <class A, class B, size_t NA, size_t NB, size_t NC, int KC>
 	auto ifelse(const Vec<bool, NC, KC>& cond, const Point<A, NA>& a, const Point<B, NB>& b)
 	{
