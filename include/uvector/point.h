@@ -98,8 +98,8 @@ namespace uv
 	template <class T, size_t N, int K> Point<T, N, K> operator-(Origo<N>, const Vec<T, N, K>& v) { return origo + -v; }
 
 
-	template <class A, class B, size_t NA, size_t NB, size_t NC, int KC>
-	auto ifelse(const Vec<bool, NC, KC>& cond, const Point<A, NA>& a, const Point<B, NB>& b)
+	template <class A, class B, size_t NA, size_t NB, size_t NC, int KA, int KB, int KC>
+	auto ifelse(const Vec<bool, NC, KC>& cond, const Point<A, NA, KA>& a, const Point<B, NB, KB>& b)
 	{
 		static constexpr size_t N = require::equal<NC, require::equal<NA, NB>>;
 		Point<std::common_type_t<A, B>, N> result;
@@ -108,11 +108,11 @@ namespace uv
 		return result;
 	}
 
-	template <class A, class B, class C, size_t NA, size_t NB>
-	auto interpolate(C c, const Point<A, NA>& a, const Point<B, NB>& b) { return origo + interpolate(c, a.v, b.v); }
+	template <class A, class B, class C, size_t NA, size_t NB, int KA, int KB>
+	auto interpolate(C c, const Point<A, NA, KA>& a, const Point<B, NB, KB>& b) { return origo + interpolate(c, a.v, b.v); }
 
-	template <class... TN, size_t N>
-	auto mean(const Point<TN, N>&... points)
+	template <class... TN, size_t N, int... KN>
+	auto mean(const Point<TN, N, KN>&... points)
 	{
 		return point(sum(points.v...) / sizeof...(TN));
 	}
