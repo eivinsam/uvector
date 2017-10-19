@@ -53,6 +53,11 @@ namespace uv
 	template <size_t N, class... S>
 	using if_scalars_t = typename std::enable_if<is_scalars<N, S...>::value>::type;
 
+	template <size_t N, class T>
+	static constexpr bool is_scalar_or_vector_v = is_scalar_v<T> || is_vector_v<N, T>;
+	template <size_t N, class T>
+	using if_scalar_or_vector_v = typename std::enable_if_t<is_scalar<T>::value || is_vector<N, T>::value>;
+
 
 	template <size_t... I>
 	struct Axes
@@ -736,44 +741,12 @@ namespace uv
 	}
 
 
-	template <class A, class B, size_t NA, size_t NB, size_t NC, int KA, int KB, int KC>
-	auto ifelse(const Vec<bool, NC, KC>& cond, const Vec<A, NA, KA>& a, const Vec<B, NB, KB>& b)
+	template <class A, class B, size_t N, int K, class = std::enable_if_t<is_scalar_or_vector_v<N, A> && is_scalar_or_vector_v<N, B>>>
+	auto ifelse(const Vec<bool, N, K>& cond, const A& a, const B& b)
 	{
-		static constexpr size_t N = require::equal<NC, require::equal<NA, NB>>;
-		Vec<type::common<A, B>, N> result;
+		Vec<type::common<scalar<A>, scalar<B>>, N> result;
 		for (size_t i = 0; i < N; ++i)
-			result[i] = cond[i] ? a[i] : b[i];
-		return result;
-	}
-	template <class A, class B, size_t NA, size_t NC, int KA, int KC>
-	auto ifelse(const Vec<bool, NC, KC>& cond, const Vec<A, NA, KA>& a, B b)
-	{
-		static_assert(is_scalar_v<B>);
-		static constexpr size_t N = require::equal<NA, NC>;
-		Vec<type::common<A, B>, N> result;
-		for (size_t i = 0; i < N; ++i)
-			result[i] = cond[i] ? a[i] : b;
-		return result;
-	}
-	template <class A, class B, size_t NB, size_t NC, int KB, int KC>
-	auto ifelse(const Vec<bool, NC, KC>& cond, A a, const Vec<B, NB, KB>& b)
-	{
-		static_assert(is_scalar_v<A>);
-		static constexpr size_t N = require::equal<NB, NC>;
-		Vec<type::common<A, B>, N> result;
-		for (size_t i = 0; i < N; ++i)
-			result[i] = cond[i] ? a : b[i];
-		return result;
-	}
-	template <class A, class B, size_t NC, int KC>
-	auto ifelse(const Vec<bool, NC, KC>& cond, A a, B b)
-	{
-		static_assert(is_scalar_v<A>);
-		static_assert(is_scalar_v<B>);
-		static constexpr size_t N = NC;
-		Vec<type::common<A, B>, N> result;
-		for (size_t i = 0; i < N; ++i)
-			result[i] = cond[i] ? a : b;
+			result[i] = cond[i] ? details::Element(i).of(a) : details::Element(i).of(b);
 		return result;
 	}
 
