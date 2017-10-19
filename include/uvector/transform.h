@@ -27,8 +27,6 @@ namespace uv
 		Trans3& operator=(const Rot3<U>& rotation) { r = rotation; t = T(0); return *this; }
 
 		template <class B>        friend auto operator*(Trans3 tf, const Rot3<B>& r)    { return tf *= r; }
-		template <class V, class = if_vector_t<3, V>> 
-		friend auto operator+(Trans3 tf, const V& t) { return tf += t; }
 
 		template <class B>
 		friend Trans3<type::add<T, B>> operator*(const Trans3& a,  const Trans3<B>&    b) { return { a.r*b.r, a.t + a.r*b.t }; }
@@ -40,8 +38,6 @@ namespace uv
 
 		Trans3& operator*=(const Trans3& b) { *this = *this * b; return *this; }
 		Trans3& operator*=(const Rot3<U>& b) { r = r * b; return *this; }
-		template <class V, class = if_vector_t<3, V>>
-		Trans3& operator+=(const V& v) { t = t + r*v; return *this; }
 
 		friend Trans3 invert(Trans3 tf)
 		{
@@ -49,6 +45,9 @@ namespace uv
 			tf.t = -(tf.r*tf.t);
 			return tf;
 		}
+
+		template <class V, class = if_vector_t<3, V>>
+		Trans3 translate(const V& v) { Trans3 result = *this; result.t += v; return result; }
 	};
 	using Transform3f = Trans3<float>;
 	using Transform3d = Trans3<double>;
