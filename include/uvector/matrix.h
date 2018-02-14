@@ -232,8 +232,8 @@ namespace uv
 
 	}
 
-	template <class T, size_t R, int... K> auto cols(const Vec<T, R, K>&... args) { Mat<T, R, sizeof...(K)> r; cols(r).assign(args...); return r; }
-	template <class T, size_t C, int... K> auto rows(const Vec<T, C, K>&... args) { Mat<T, sizeof...(K), C> r; rows(r).assign(args...); return r; }
+	template <class T, size_t R, int... K> Mat<T, R, sizeof...(K)> cols(const Vec<T, R, K>&... args) { Mat<T, R, sizeof...(K)> r; cols(r).assign(args...); return r; }
+	template <class T, size_t C, int... K> Mat<T, sizeof...(K), C> rows(const Vec<T, C, K>&... args) { Mat<T, sizeof...(K), C> r; rows(r).assign(args...); return r; }
 
 	template <class T, size_t R, size_t C>
 	auto transpose(const Mat<T, R, C>& m)

@@ -960,6 +960,9 @@ namespace uv
 		friend constexpr Vec<T, N> operator+(const Vec<T, N>& v, const Dir& d) { return v + d._v(); }
 		friend constexpr Vec<T, N> operator+(const Dir& d, const Vec<T, N>& v) { return d._v() + v; }
 
+		template <int I> friend constexpr auto operator+(Component<T, I> c, const Dir& d) { return c + d._v(); }
+		template <int I> friend constexpr auto operator+(const Dir& d, Component<T, I> c) { return d._v() + c; }
+
 		constexpr Vec<T, N> operator+(const Dir& b) const { return _v() + b._v(); }
 
 		constexpr const T& operator[](size_t i) const { return Vec<T, N>::operator[](i); }
