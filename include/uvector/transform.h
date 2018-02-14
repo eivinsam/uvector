@@ -33,8 +33,8 @@ namespace uv
 		template <class V, class = if_vector_t<3, V>> friend auto operator*(const Trans3& tf, const V& v) { return tf.r * v; }
 		template <class B>           friend Point3<type::add<T, B>> operator*(const Trans3& tf, const Point3<B>&    p) { return point(tf.r * p.v + tf.t); }
 
-		friend Point3<T> operator*(const Trans3& tf, Origo<0>) { return point(tf.t); }
-		friend Point3<T> operator*(const Trans3& tf, Origo<3>) { return point(tf.t); }
+		friend decltype(auto) operator*(const Trans3& tf, Origo<0> o) { return o + tf.t; }
+		friend decltype(auto) operator*(const Trans3& tf, Origo<3> o) { return o + tf.t; }
 
 		Trans3& operator*=(const Trans3& b) { *this = *this * b; return *this; }
 		Trans3& operator*=(const Rot3<U>& b) { r = r * b; return *this; }
